@@ -1,0 +1,46 @@
+# SpectralFM v2 — Dependencies
+# Install: pip install -r requirements.txt
+
+# Core
+torch>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+
+# Data
+h5py>=3.8.0
+pandas>=2.0.0
+jcamp>=1.2.2
+
+# Spectroscopy
+PyWavelets>=1.4.0
+
+# Optimal Transport
+POT>=0.9.0
+
+# LoRA Fine-tuning
+peft>=0.6.0
+
+# Tensor Operations
+einops>=0.7.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+tqdm>=4.65.0
+pyyaml>=6.0
+
+# Optional — Enhanced Performance
+# mamba-ssm>=1.2.0  # CUDA Mamba kernels (Linux + CUDA only)
+# neuraloperator>=0.3.0  # Reference FNO implementation
+
+# Optional — Experiment Tracking
+# wandb>=0.15.0
+
+# Optional — Uncertainty Quantification
+# mapie>=0.8.0  # Conformal prediction
+
+# Optional — KAN
+# pykan>=0.2.0  # Kolmogorov-Arnold Networks
