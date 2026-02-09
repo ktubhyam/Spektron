@@ -1,0 +1,16 @@
+{
+  "experiment": "spectral_fm_finetune_random_init",
+  "dataset": "corn_mp6_moisture",
+  "n_transfer": 30,
+  "n_test": 50,
+  "pretrained": false,
+  "n_epochs": 20,
+  "timestamp": "2026-02-10T04:50:03.328596",
+  "results": {
+    "r2": -0.06599183513494067,
+    "rmsep": 0.40714025497436523,
+    "rpd": 0.9685523254456421,
+    "bias": 0.1007160022854805,
+    "slope": -0.0003700290082822695
+  }
+}

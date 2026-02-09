@@ -20,7 +20,7 @@ from datetime import datetime
 
 from src.evaluation.baselines import compute_metrics
 from src.data.datasets import SpectralPreprocessor
-from src.config import SpectralFMConfig
+from src.config import SpectralFMConfig, get_light_config
 from src.models.spectral_fm import SpectralFM
 from src.models.heads import RegressionHead
 
@@ -76,9 +76,9 @@ def run_spectral_fm_finetune(data: dict, n_epochs: int = 20, lr: float = 1e-3,
     X_test_t = torch.tensor(X_test, dtype=torch.float32).to(device)
     y_test_t = torch.tensor(data["y_test"], dtype=torch.float32).to(device)
 
-    # Create model with smaller config for faster testing
-    print("  Creating model...")
-    cfg = SpectralFMConfig()
+    # Create model with lightweight config for faster CPU testing
+    print("  Creating model (lightweight config)...")
+    cfg = get_light_config()
     model = SpectralFM(cfg).to(device)
     regression_head = RegressionHead(d_input=cfg.vib.z_chem_dim, n_targets=1).to(device)
 
