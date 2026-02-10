@@ -161,6 +161,7 @@ class ChEMBLDownloader:
         batch_size = 1000
         offset = 0
         yielded = 0
+        _logged_first = False
 
         while offset < total:
             cursor.execute(f"SELECT * FROM {table} LIMIT {batch_size} OFFSET {offset}")
@@ -174,6 +175,28 @@ class ChEMBLDownloader:
                     if record is not None:
                         yield record
                         yielded += 1
+                    elif not _logged_first:
+                        # Log first row's data keys for debugging blob structure
+                        data = {}
+                        for col, val in zip(columns, row):
+                            if isinstance(val, bytes):
+                                try:
+                                    parsed = pickle.loads(zlib.decompress(val))
+                                except Exception:
+                                    try:
+                                        parsed = pickle.loads(val)
+                                    except Exception:
+                                        parsed = val
+                                if isinstance(parsed, dict):
+                                    data.update(parsed)
+                                else:
+                                    data[col] = parsed
+                            else:
+                                data[col] = val
+                        blob_keys = [k for k in data.keys() if k not in columns]
+                        logger.info(f"  First row blob keys: {blob_keys[:20]}")
+                        logger.info(f"  All data keys: {list(data.keys())[:25]}")
+                        _logged_first = True
                 except Exception as e:
                     logger.debug(f"Failed to process row: {e}")
                     continue
@@ -194,12 +217,18 @@ class ChEMBLDownloader:
             if isinstance(val, bytes):
                 try:
                     decompressed = zlib.decompress(val)
-                    data[col] = pickle.loads(decompressed)
+                    parsed = pickle.loads(decompressed)
                 except Exception:
                     try:
-                        data[col] = pickle.loads(val)
+                        parsed = pickle.loads(val)
                     except Exception:
-                        data[col] = val
+                        parsed = val
+                # If deserialized blob is a dict, merge keys into data
+                # (ChEMBL stores freq/intensity arrays inside blob_data)
+                if isinstance(parsed, dict):
+                    data.update(parsed)
+                else:
+                    data[col] = parsed
             else:
                 data[col] = val
 
