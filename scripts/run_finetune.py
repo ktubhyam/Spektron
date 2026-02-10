@@ -179,7 +179,7 @@ def finetune_spectral_fm(model, X_train, y_train, X_val=None, y_val=None,
             optimizer.zero_grad()
             enc = model.encode(x_batch, domain="NIR")
             pred = model.regression_head(enc["z_chem"]).squeeze(-1)
-            loss = F.mse_loss(pred, y_batch)
+            loss = F.mse_loss(pred.view_as(y_batch), y_batch)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
