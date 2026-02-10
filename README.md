@@ -1,8 +1,10 @@
-# SSM-OT-CalTransfer
+# CAIRN
 
-**Bridging State Space Models and Optimal Transport for Zero-to-Few-Shot Spectral Calibration Transfer**
+**Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning**
 
-The first self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman). Combines a hybrid Mamba-Transformer backbone with Sinkhorn-based optimal transport domain adaptation, variational information bottleneck disentanglement, and physics-informed regularization to achieve calibration transfer across spectrometers using 10 or fewer labeled samples.
+> **CAlibration via Instrument-invariant Representation Networks**
+
+A self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman) that learns to disentangle chemical content from instrument-specific artifacts. CAIRN combines a hybrid Mamba-Transformer backbone with Sinkhorn-based optimal transport domain adaptation, a variational information bottleneck, and physics-informed regularization to achieve calibration transfer across spectrometers using 10 or fewer labeled samples — where classical methods require 30-60.
 
 > **Author:** Tubhyam Karthikeyan (ICT Mumbai / InvyrAI)
 >
@@ -12,15 +14,15 @@ The first self-supervised foundation model for vibrational spectroscopy (NIR, IR
 
 ## The Problem
 
-Calibration transfer in spectroscopy has relied on the same approaches for 30+ years: measure 10-60 transfer samples on both instruments, then apply PDS/DS/SBC correction. This is expensive ($50-200 per reference analysis) and must be repeated for every new instrument.
+Calibration transfer in spectroscopy has relied on the same approaches for 30+ years: measure 10-60 transfer samples on both instruments, then apply PDS/DS/SBC correction. At $50-200 per reference analysis, this is expensive and must be repeated for every new instrument. After four decades, the field still lacks a scalable solution.
 
 ## Our Approach
 
-SSM-OT-CalTransfer proposes a **fifth strategy** for calibration transfer: learn instrument-invariant chemical representations from a massive pretraining corpus, then adapt with minimal transfer data.
+CAIRN proposes a **fifth strategy** for calibration transfer — after instrument matching, global modeling, model updating, and sensor selection (Workman & Mark, 2017): learn instrument-invariant chemical representations from a large pretraining corpus, then adapt with minimal transfer data.
 
-- **Zero-shot:** Test-time training (TTT) on unlabeled spectra from the new instrument
-- **Few-shot:** LoRA fine-tuning with as few as 5-10 transfer samples
-- **Target:** 10 transfer samples beats classical methods using 50
+- **Standard-free (TTT):** Test-time training on unlabeled spectra from the new instrument — no paired standards needed
+- **Sample-efficient (LoRA):** Fine-tuning with as few as 5-10 transfer samples
+- **Target:** 10 transfer samples outperforms classical methods using 50
 
 ## Architecture
 
@@ -34,67 +36,66 @@ Spectrum (B, 2048)
   -> Heads                 Reconstruction | Regression | FNO Transfer
 ```
 
-**Key design choices:**
-- **Mamba (O(n))** handles long-range spectral dependencies efficiently
-- **Transformer (O(n^2))** adds global expressiveness where needed
-- **Wavelet decomposition** separates sharp peaks from baselines
-- **VIB disentanglement** splits latent space into transferable chemistry vs. discardable instrument signature
-- **Optimal transport** aligns latent distributions across instruments via Sinkhorn divergence
-- **Physics-informed losses** enforce Beer-Lambert linearity, smoothness, non-negativity, peak shape
+**Design rationale:**
+- **Mamba (O(n))** — selective state space model for long-range spectral dependencies without quadratic cost
+- **Transformer (O(n^2))** — global self-attention for expressiveness where it matters
+- **Wavelet decomposition** — DWT separates sharp absorption peaks (detail coefficients) from baselines (approximation coefficients)
+- **VIB disentanglement** — variational information bottleneck splits the latent space into transferable chemistry (z_chem) and discardable instrument signature (z_inst)
+- **Optimal transport** — Sinkhorn divergence aligns latent distributions across instruments
+- **Physics-informed losses** — Beer-Lambert linearity, spectral smoothness, non-negativity, peak shape constraints
 
 ## Project Structure
 
 ```
-SSM-OT-CalTransfer/
-├── run.py                         # Entry point (pretrain / finetune / evaluate / ttt)
+CAIRN/
+├── run.py                              # Entry point (pretrain / finetune / evaluate / ttt)
 ├── src/
-│   ├── config.py                  # All hyperparameters (dataclass-based)
+│   ├── config.py                       # All hyperparameters (dataclass-based)
 │   ├── models/
-│   │   ├── embedding.py           # WaveletEmbedding + WavenumberPE
-│   │   ├── mamba.py               # Pure PyTorch selective SSM
-│   │   ├── moe.py                 # Mixture of Experts + KAN layers
-│   │   ├── transformer.py         # Lightweight TransformerEncoder
-│   │   ├── heads.py               # VIB, Reconstruction, Regression, FNO heads
-│   │   └── spectral_fm.py         # Full model assembly + TTT
+│   │   ├── embedding.py                # WaveletEmbedding + WavenumberPE
+│   │   ├── mamba.py                    # Pure PyTorch selective SSM
+│   │   ├── moe.py                      # Mixture of Experts + KAN layers
+│   │   ├── transformer.py              # Lightweight TransformerEncoder
+│   │   ├── heads.py                    # VIB, Reconstruction, Regression, FNO heads
+│   │   └── spectral_fm.py              # Full model assembly + TTT
 │   ├── losses/
-│   │   └── losses.py              # MSRP, contrastive, physics, OT, VIB, MoE losses
+│   │   └── losses.py                   # MSRP, contrastive, physics, OT, VIB, MoE losses
 │   ├── training/
-│   │   └── trainer.py             # Pretrain + finetune + TTT training loops
+│   │   └── trainer.py                  # Pretrain + finetune + TTT training loops
 │   ├── evaluation/
-│   │   ├── metrics.py             # R2, RMSEP, RPD, bias, conformal prediction
-│   │   └── baselines.py           # PDS, SBC, DS classical baselines
+│   │   ├── metrics.py                  # R2, RMSEP, RPD, bias, conformal prediction
+│   │   └── baselines.py               # PDS, SBC, DS classical baselines
 │   └── data/
-│       ├── datasets.py            # Data loading, augmentation, wavelet preprocessing
-│       ├── build_pretrain_corpus.py    # Download + preprocess pretraining data
-│       └── pretraining_pipeline.py     # Pretraining dataset class
+│       ├── datasets.py                 # Data loading, augmentation, preprocessing
+│       ├── build_pretrain_corpus.py     # Download + preprocess pretraining data
+│       └── pretraining_pipeline.py      # Pretraining dataset class
 ├── scripts/
-│   ├── run_baselines.py           # Run classical baseline comparison
-│   └── run_finetune_test.py       # Fine-tuning validation script
+│   ├── run_baselines.py                # Run classical baseline comparison
+│   └── run_finetune_test.py            # Fine-tuning validation script
 ├── data/
-│   ├── raw/                       # Original .mat files
-│   └── processed/                 # Preprocessed .npy arrays
-│       ├── corn/                  # 80 samples x 3 instruments x 700 channels
-│       └── tablet/                # 655 samples x 2 instruments x 650 channels
-├── experiments/                   # Experiment results (JSON)
-├── checkpoints/                   # Saved model weights
-├── figures/                       # Generated plots
-├── paper/                         # Research notes and brainstorms
+│   ├── raw/                            # Original .mat files
+│   └── processed/                      # Preprocessed .npy arrays
+│       ├── corn/                       # 80 samples x 3 instruments x 700 channels
+│       └── tablet/                     # 655 samples x 2 instruments x 650 channels
+├── experiments/                        # Experiment results (JSON)
+├── checkpoints/                        # Saved model weights
+├── figures/                            # Generated plots
+├── paper/                              # Research notes and brainstorms
 ├── requirements.txt
-├── CLAUDE.md                      # Dev instructions for Claude Code
-├── PROJECT_STATUS.md              # Current state and known issues
-└── IMPLEMENTATION_PLAN.md         # Detailed task breakdown
+├── PROJECT_STATUS.md                   # Current state and known issues
+└── IMPLEMENTATION_PLAN.md              # Detailed task breakdown
 ```
 
 ## Datasets
 
-### Evaluation (included, preprocessed)
+### Evaluation (preprocessed, included)
 
 | Dataset | Samples | Instruments | Channels | Properties |
 |---------|---------|-------------|----------|------------|
 | **Corn** | 80 | 3 (m5, mp5, mp6) | 700 | moisture, oil, protein, starch |
 | **Tablet** | 655 | 2 | 650 | active ingredient, weight, hardness |
 
-### Pretraining (to be downloaded)
+### Pretraining Corpus (to be downloaded)
 
 | Source | Spectra | Modality |
 |--------|---------|----------|
@@ -107,82 +108,78 @@ SSM-OT-CalTransfer/
 ## Installation
 
 ```bash
-# Clone
-git clone https://github.com/ktubhyam/SSM-OT-CalTransfer.git
-cd SSM-OT-CalTransfer
-
-# Install dependencies
+git clone https://github.com/ktubhyam/CAIRN.git
+cd CAIRN
 pip install -r requirements.txt
 
-# Optional (CUDA Mamba kernels — Linux + CUDA only)
+# Optional: CUDA Mamba kernels (Linux + CUDA only)
 pip install mamba-ssm>=1.2.0
 ```
 
-### Requirements
-
-- Python 3.10+
-- PyTorch 2.0+ (2.2.2 for Intel Mac, 2.4+ for Apple Silicon/CUDA)
-- ~40GB VRAM for full pretraining (A100 recommended)
-- CPU-only mode available for development and fine-tuning
+**Requirements:** Python 3.10+, PyTorch 2.0+, ~40GB VRAM for full pretraining (A100 recommended). CPU mode available for development.
 
 ## Usage
 
 ```bash
-# Smoke test (verify everything works)
+# Smoke test — verify forward/backward pass
 python run.py --mode smoke_test
 
-# Run classical baselines on corn dataset
+# Classical baselines on corn dataset
 python scripts/run_baselines.py
 
 # Pretrain on spectral corpus
 python run.py --mode pretrain
 
-# Fine-tune for calibration transfer
+# LoRA fine-tune for calibration transfer
 python run.py --mode finetune --checkpoint checkpoints/pretrain_best.pt
 
-# Zero-shot transfer via test-time training
+# Standard-free transfer via test-time training
 python run.py --mode ttt --checkpoint checkpoints/pretrain_best.pt
 ```
 
-## Baselines Implemented
+## Baselines
 
 | Method | Type | Description |
 |--------|------|-------------|
-| PDS | Classical | Piecewise Direct Standardization (Kowalski) |
+| PDS | Classical | Piecewise Direct Standardization (Wang, Veltkamp & Kowalski, 1991) |
 | DS | Classical | Direct Standardization |
 | SBC | Classical | Slope/Bias Correction |
 | PLS | Classical | Partial Least Squares regression |
-| SSM-OT-CalTransfer (ours) | Foundation model | Few-shot LoRA transfer + TTT |
+| CAIRN (ours) | Foundation model | Self-supervised pretraining + LoRA transfer + TTT |
 
-## Key Benchmark Target
+## Benchmark Targets
 
 | Method | R2 (corn moisture) | Transfer Samples |
 |--------|-------------------|-----------------|
 | PDS | ~0.55 | 30 |
 | DS | ~0.69 | 30 |
 | LoRA-CT (literature) | 0.952 | 50 |
-| **SSM-OT-CalTransfer (target)** | **>0.96** | **10** |
+| **CAIRN (target)** | **>0.96** | **10** |
+
+## Pretraining Objectives
+
+| Loss | Purpose |
+|------|---------|
+| **MSRP** | Masked Spectrum Reconstruction — contiguous block masking, learn spectral structure |
+| **Contrastive** | BYOL-style instrument-invariance between augmented views of same spectrum |
+| **Denoising** | Reconstruct clean spectrum from synthetically corrupted input |
+| **Physics** | Beer-Lambert linearity, smoothness, non-negativity, peak shape constraints |
+| **OT Alignment** | Sinkhorn-based Wasserstein distance across instrument latent distributions |
+| **VIB** | Variational Information Bottleneck — disentangle z_chem from z_inst |
+
+## Transfer Methods
+
+| Method | Transfer Samples | Description |
+|--------|-----------------|-------------|
+| **TTT** | 0 (unlabeled only) | Run K steps of MSRP self-supervision on unlabeled target spectra |
+| **LoRA** | 5-10 (labeled) | Low-rank adaptation of transformer attention layers |
+| **FNO** | N/A | Fourier Neural Operator head for resolution-independent spectral mapping |
 
 ## Current Status
 
-**Phase 1 (Make It Run):** Core architecture implemented (~12K lines across 20 Python modules), evaluation datasets preprocessed (Corn: 80 samples x 3 instruments, Tablet: 655 samples x 2 instruments), classical baselines running (PDS, DS, SBC). Forward pass and training loop under active debugging.
+Core architecture implemented (~12K lines across 20 Python modules). Evaluation datasets preprocessed. Classical baselines running (PDS, DS, SBC). Forward pass and training loop under active debugging.
 
-See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for detailed progress tracking.
-
-## Technical Details
-
-### Pretraining Objectives
-- **MSRP** — Masked Spectrum Reconstruction Pretraining (contiguous block masking)
-- **Contrastive** — BYOL-style instrument-invariance between augmented views
-- **Denoising** — Reconstruct clean spectrum from synthetically corrupted input
-- **Physics** — Beer-Lambert, smoothness, non-negativity, peak shape constraints
-- **OT Alignment** — Sinkhorn-based Wasserstein distance across instrument latents
-- **VIB** — Variational Information Bottleneck for z_chem/z_inst disentanglement
-
-### Transfer Methods
-- **TTT (zero-shot):** Run K steps of MSRP self-supervision on unlabeled target spectra
-- **LoRA (few-shot):** Low-rank adaptation of transformer layers with N labeled pairs
-- **FNO head:** Fourier Neural Operator for resolution-independent spectral mapping
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for details.
 
 ## License
 
@@ -191,8 +188,8 @@ MIT License. See [LICENSE](LICENSE).
 ## Citation
 
 ```bibtex
-@article{karthikeyan2026ssmotcaltransfer,
-  title={Bridging State Space Models and Optimal Transport for Zero-to-Few-Shot Spectral Calibration Transfer},
+@article{karthikeyan2026cairn,
+  title={CAIRN: Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning},
   author={Karthikeyan, Tubhyam},
   journal={Analytical Chemistry},
   year={2026}
@@ -201,4 +198,4 @@ MIT License. See [LICENSE](LICENSE).
 
 ---
 
-*Under active development. This is a research project targeting publication in Analytical Chemistry (ACS).*
+*Under active development. Targeting publication in Analytical Chemistry (ACS).*
