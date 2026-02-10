@@ -189,7 +189,7 @@ MIT License. See [LICENSE](LICENSE).
 
 ```bibtex
 @article{karthikeyan2026vs3l,
-  title={VS$^3$L: Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning},
+  title={Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning},
   author={Karthikeyan, Tubhyam},
   journal={Analytical Chemistry},
   year={2026}
