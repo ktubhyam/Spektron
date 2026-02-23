@@ -2,11 +2,29 @@
 
 ## What This Project Is
 
-SpectralFM is a **research paper implementation** for a novel ML architecture targeting publication in Analytical Chemistry (ACS, IF 7.4). It's the **first self-supervised foundation model for vibrational spectroscopy** that achieves few-shot calibration transfer across instruments and modalities.
+SpectralFM is a **research paper + implementation** targeting publication at Nature Communications or JACS. The paper provides the **first formal identifiability theory for the spectral inverse problem** in vibrational spectroscopy, connecting group theory, information theory, and deep learning.
 
-**Paper Title:** "Bridging State Space Models and Optimal Transport for Zero-to-Few-Shot Spectral Calibration Transfer"
+**Paper Title:** "Can One Hear the Shape of a Molecule? Group-Theoretic Identifiability and Modal Complementarity in Vibrational Spectroscopy"
 
 **Author:** Tubhyam Karthikeyan (ICT Mumbai / InvyrAI)
+
+## Paper Direction (CORRECTED 2026-02-11)
+
+The paper has **two pillars**: rigorous theory + empirical ML validation.
+
+**Pillar 1 — Theory (the novel contribution):**
+- **Theorem 1 (Symmetry Quotient + Information Completeness):** Spectra are G-invariant; the inverse map is to M/G. The Information Completeness Ratio R(G,N) = (N_IR + N_Raman)/(3N-6) quantifies observable fraction. PROVABLE.
+- **Theorem 2 (Modal Complementarity):** For centrosymmetric molecules, IR and Raman observe disjoint mode sets (mutual exclusion). Combined, they strictly increase observable DOF. PROVABLE. **DO NOT claim superadditivity** (violates MI submodularity). **DO NOT claim PID redundancy = 0** (disjoint features ≠ zero PID redundancy).
+- **Conjecture 3 (Generic Identifiability):** Combined IR+Raman generically determines force constants up to symmetry. Supported by Jacobian rank analysis, parameter counting, and counterexample search. CONJECTURE, not theorem. **DO NOT claim Sard's theorem applies** (smoothness breaks at degeneracies).
+- **Borg analogy:** Motivation ONLY, not a theorem. 1D SL ≠ d×d Hessian.
+
+**Pillar 2 — ML Model:**
+- Symmetry-aware foundation model (CNN-Transformer encoder + VIB + retrieval decoder)
+- Pretrained on QM9S (130K) + ChEMBL (220K)
+- Symmetry-stratified experiments validating theoretical predictions
+- Calibration transfer on corn/tablet datasets
+
+**Key reference document:** `paper/CORRECTED_PAPER_BLUEPRINT.md` (supersedes UNIFIED_PAPER_BLUEPRINT.md)
 
 ## Architecture Overview
 
@@ -68,6 +86,11 @@ SpectralFM/
 │           ├── validate_2.npy (40, 650)
 │           └── validate_Y.npy (40, 3)
 ├── paper/
+│   ├── CORRECTED_PAPER_BLUEPRINT.md  ← THE AUTHORITATIVE PAPER PLAN (v2.0)
+│   ├── UNIFIED_PAPER_BLUEPRINT.md    ← SUPERSEDED (has mathematical errors)
+│   ├── SYMMETRY_IDENTIFIABILITY_THEORY.md ← Group theory reference
+│   ├── PID_RESOLUTION_COMPREHENSIVE.md   ← PID analysis (use cautiously)
+│   ├── FORWARD_MODEL_PHYSICS.md      ← Wilson GF method reference
 │   ├── BRAINSTORM_V2.md
 │   └── RESEARCH_FULL_REFERENCE.md
 ├── checkpoints/
@@ -79,13 +102,22 @@ SpectralFM/
 
 ## Key Technical Decisions
 
-1. **Hybrid Mamba-Transformer** — Mamba (O(n)) handles long-range spectral dependencies, Transformer (O(n²)) adds global expressiveness. All 3 (pure Mamba, pure Transformer, hybrid) should be ablatable.
-2. **Wavelet decomposition for embedding** — DWT separates sharp peaks (detail coeffs) from baselines (approx coeffs). Currently uses Haar-like approximation for differentiability; should use `pywt` for actual DWT in data preprocessing then pass coefficients to the model.
-3. **Optimal Transport alignment** — Sinkhorn-based Wasserstein distance between latent distributions of different instruments. Use `POT` library.
-4. **Physics-informed losses** — Beer-Lambert (linearity), non-negativity, smoothness, peak shape constraints. These are soft regularizers, not hard constraints.
-5. **VIB disentanglement** — Split latent into z_chem (chemistry, transferable) and z_inst (instrument, discardable). Reparameterization trick + KL regularization.
-6. **FNO transfer head** — Fourier Neural Operator for resolution-independent spectral mapping.
-7. **Test-Time Training** — At inference on a new instrument, run K steps of MSRP self-supervision on unlabeled spectra to adapt. Enables zero-shot calibration transfer.
+1. **CNN-Transformer Encoder** — 1D CNN tokenizer (8-10% accuracy gain over raw transformer) + 4-layer Transformer with 8 heads. Multi-modal variant uses cross-attention for IR+Raman fusion.
+2. **VIB disentanglement** — Split latent into z_chem (chemistry, transferable) and z_inst (instrument, discardable). Reparameterization trick + KL regularization + adversarial loss.
+3. **Retrieval decoder** (primary) — z_chem → nearest neighbor in database. More defensible than generative for the paper. Conformal prediction for uncertainty.
+4. **Optimal Transport alignment** — Sinkhorn-based Wasserstein distance for calibration transfer. Use `POT` library.
+5. **Physics-informed positional encoding** — Wavenumber (cm⁻¹) as positional information.
+6. **Test-Time Training** — At inference on a new instrument, run K steps of self-supervision to adapt.
+
+## Mathematical Guardrails (CRITICAL)
+
+When working on theory/paper content, NEVER:
+- Claim I(X; Y₁, Y₂) > I(X; Y₁) + I(X; Y₂) — this violates MI submodularity
+- Claim PID redundancy = 0 from disjoint features — shared Hessian creates coupling
+- Use Sard's theorem on the forward map — smoothness breaks at eigenvalue degeneracies
+- Cite Borg's theorem as proof of anything — it's a 1D result, our problem is d-dimensional
+- Call Conjecture 3 a "theorem" — it's unproven
+- Use I_loss = log₂|G| - Σ log₂|Fix(g)| — Fix(g) can be negative
 
 ## Coding Standards
 
@@ -100,37 +132,45 @@ SpectralFM/
 
 ## Important Constraints
 
-- **Compute:** Colab Pro+ with A100 (40GB VRAM, ~24h max continuous runtime)
-- **Data:** Corn (80 × 3 instruments × 700ch) and Tablet (655 × 2 instruments × 650ch) are SMALL datasets. Pretraining data (400K+ spectra from ChEMBL, USPTO, NIST, RRUFF) still needs to be downloaded and preprocessed.
-- **All spectra must be resampled to 2048 points** for uniform input (pad/interpolate shorter spectra)
+- **Compute:** 4× RTX 5090 GPUs available for training
+- **Primary dataset:** QM9S (130K molecules, IR+Raman+UV, B3LYP/def2-TZVP, on Figshare)
+- **Additional datasets:** QMe14S (186K), ChEMBL IR-Raman (220K), NIST (5K), SDBS (34K)
+- **Transfer test sets:** Corn (80 × 3 instruments × 700ch), Tablet (655 × 2 instruments × 650ch)
+- **All spectra must be resampled to 2048 points** for uniform input
 - **Key benchmark target:** Must beat LoRA-CT (R² = 0.952 on corn moisture) with ≤10 transfer samples
+- **Theory must be correct:** Every theorem must have a valid proof. Conjectures must be clearly labeled.
 
-## What Needs Doing (See IMPLEMENTATION_PLAN.md for Details)
+## What Needs Doing (See CORRECTED_PAPER_BLUEPRINT.md for Full Plan)
 
-**PHASE 1 — Make It Run (HIGH PRIORITY):**
-- [ ] Install dependencies and verify all imports work
-- [ ] Fix any import/shape/dimension bugs in existing code
-- [ ] Write a minimal smoke test: random data → forward pass → loss backward
-- [ ] Verify data loading pipeline end-to-end
+**PHASE 1 — Data Pipeline (2 weeks):**
+- [ ] Download QM9S (130K, Figshare) + ChEMBL IR-Raman (220K)
+- [ ] Preprocess: resample to 2048 pts, normalize, stratify by point group
+- [ ] Compute R(G,N) for each molecule (Information Completeness Ratio)
+- [ ] Smoke test: forward pass + loss backward
 
-**PHASE 2 — Pretraining Data Pipeline:**
-- [ ] Download + preprocess pretraining datasets (ChEMBL IR-Raman 220K, USPTO 177K, NIST 5.2K, RRUFF 8.6K)
-- [ ] Unified HDF5 format with metadata
-- [ ] Resample all spectra to 2048 points
-- [ ] Data augmentation pipeline
+**PHASE 2 — Theory Implementation (2 weeks):**
+- [ ] R(G,N) computation from character tables (Theorem 1)
+- [ ] Jacobian rank analysis for ~1000 molecules (Conjecture 3 evidence)
+- [ ] Confusable set construction (Proposition A)
+- [ ] Fano bound computation
 
-**PHASE 3 — Training:**
-- [ ] Pretraining loop (MSRP + multi-loss)
-- [ ] Fine-tuning loop (LoRA-based transfer)
-- [ ] TTT implementation
-- [ ] Baseline implementations (PDS, SBC, DS, CCA, di-PLS)
+**PHASE 3 — Model Training (3 weeks):**
+- [ ] CNN-Transformer encoder + VIB head
+- [ ] Pretraining: masked reconstruction + contrastive + denoising
+- [ ] Fine-tuning: LoRA-based transfer
+- [ ] Retrieval decoder + conformal prediction
 
-**PHASE 4 — Experiments:**
-- [ ] E1-E12 (see IMPLEMENTATION_PLAN.md)
-- [ ] Ablation studies
-- [ ] Figure generation
+**PHASE 4 — Experiments (2 weeks):**
+- [ ] E1: Symmetry stratification (R(G,N) vs. accuracy)
+- [ ] E2: Modal complementarity (IR vs. Raman vs. IR+Raman)
+- [ ] E3: Confusable set validation (empirical error vs. Fano bound)
+- [ ] E4: Jacobian rank histogram (generic identifiability evidence)
+- [ ] E5: Calibration transfer (corn, tablet)
+- [ ] E6: Uncertainty quantification (conformal prediction)
 
-**PHASE 5 — Paper:**
-- [ ] Results tables
-- [ ] Architecture diagram
-- [ ] Writing
+**PHASE 5 — Paper Writing (3 weeks):**
+- [ ] Sections 1-3: Intro, Background, Theoretical Framework
+- [ ] Sections 4-5: Methods, Experiments & Results
+- [ ] Sections 6-7: Discussion, Conclusion
+- [ ] Figures (8 main) + Tables (4 main)
+- [ ] Supplementary (15 pages)

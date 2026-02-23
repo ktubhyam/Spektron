@@ -1,0 +1,16 @@
+{
+  "n_molecules": 999,
+  "n_full_rank": 999,
+  "n_rank_deficient": 0,
+  "pct_full_rank": 100.0,
+  "overdetermination_stats": {
+    "mean": 4.0,
+    "min": 4.0,
+    "max": 4.0
+  },
+  "condition_stats": {
+    "median": 6474.023611802809,
+    "p95": 41222.59925579436
+  },
+  "rank_deficient_molecules": []
+}
