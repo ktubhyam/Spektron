@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================
-# Spekron: vast.ai GPU Training Setup
+# Spektron: vast.ai GPU Training Setup
 # Run this on the vast.ai instance after SSH-ing in
 # ============================================================
 set -e
 
 echo "=========================================="
-echo "  Spekron GPU Training Setup"
+echo "  Spektron GPU Training Setup"
 echo "=========================================="
 
 # 1. Install dependencies
