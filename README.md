@@ -10,6 +10,8 @@ A self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman)
 >
 > **Target Journal:** Analytical Chemistry (ACS, IF 7.4)
 
+**[Project Page](https://tubhyam.dev/projects/spekron)** | **[Research Paper](https://tubhyam.dev/research/hybrid-ssa-spectroscopy)** | **[Blog Post](https://tubhyam.dev/blog/spectral-inverse-problem)**
+
 ---
 
 ## The Problem
