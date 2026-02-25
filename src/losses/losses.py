@@ -323,13 +323,11 @@ class VIBLoss(nn.Module):
             vib_out["inst_from_inst"], instrument_id
         ) * self.disentangle_weight
 
-        # z_chem should NOT predict instrument (adversarial)
-        # Minimize KL(uniform || pred) → push pred toward uniform → max entropy
-        inst_pred_from_chem = F.softmax(vib_out["inst_from_chem"], dim=-1)
-        n_inst = vib_out["inst_from_chem"].size(-1)
-        uniform = torch.ones_like(inst_pred_from_chem) / n_inst
-        losses["chem_adversarial"] = F.kl_div(
-            inst_pred_from_chem.log(), uniform, reduction='batchmean'
+        # z_chem adversarial: classifier trains to predict instrument,
+        # but gradient reversal in VIBHead makes z_chem learn to be invariant.
+        # The loss here is standard cross-entropy (same as inst_cls).
+        losses["chem_adversarial"] = F.cross_entropy(
+            vib_out["inst_from_chem"], instrument_id
         ) * self.disentangle_weight
 
         losses["total_vib"] = sum(losses.values())
@@ -383,10 +381,9 @@ class SpectralFMPretrainLoss(nn.Module):
             model_output["mask"],
         )
 
-        # 2. Physics
-        # Reconstruct full spectrum from patches for physics loss
-        physics_losses = self.physics(model_output["target_patches"].reshape(
-            model_output["target_patches"].size(0), -1
+        # 2. Physics (regularize the reconstruction, not the target)
+        physics_losses = self.physics(model_output["reconstruction"].reshape(
+            model_output["reconstruction"].size(0), -1
         ))
         losses["physics"] = self.w_physics * physics_losses["total_physics"]
 

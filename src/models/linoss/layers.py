@@ -378,10 +378,18 @@ class DampedLayer(_AbstractLinOSSLayer):
 
         Identity = torch.ones_like(A_diag)
         S = Identity + step * G_diag
+
+        # CFL stability condition: alpha = step²*A/S must be < 2
+        # to keep transition matrix eigenvalues inside the unit circle.
+        # Without this, A_diag can grow during training making M_22 < -1,
+        # causing exponential divergence in the 2048-step associative scan.
+        alpha = step**2 * A_diag / S
+        alpha = 1.99 * torch.tanh(alpha / 1.99)  # Soft clamp: differentiable everywhere
+
         M_11 = 1.0 / S
-        M_12 = -step / S * A_diag
+        M_12 = -alpha / step          # was: -step/S * A_diag = -alpha/step
         M_21 = step / S
-        M_22 = Identity - step**2 / S * A_diag
+        M_22 = Identity - alpha        # was: 1 - step²*A/S = 1 - alpha
 
         M = torch.cat([M_11, M_12, M_21, M_22])
         L = input_sequence.shape[-2]
@@ -437,8 +445,9 @@ class DampedLayer(_AbstractLinOSSLayer):
             input_f32 = input_sequence.float()
             steps = torch.sigmoid(self.steps)
             G_diag = F.relu(self.G_diag)
+            A_diag = F.relu(self.A_diag)  # Must be ≥0 (squared frequencies)
 
-            ys = self._recurrence(self.A_diag, G_diag, self.B, input_f32, steps)
+            ys = self._recurrence(A_diag, G_diag, self.B, input_f32, steps)
 
             Cy_complex = torch.einsum("...lpt,hpt->...lht", ys, self.C)
             Cy = Cy_complex[..., 0] - Cy_complex[..., 1]
@@ -499,20 +508,28 @@ class LinOSSBlock(nn.Module):
         Returns:
             output: same shape as input (with residual)
         """
-        skip = x
+        orig_dtype = x.dtype
 
-        # BatchNorm expects (N, C, L) format
-        x_t = x
-        if x.dim() == 2:
-            x_t = x_t.unsqueeze(0)
-        x_norm = self.norm(x_t.permute(0, 2, 1)).permute(0, 2, 1)
-        if x.dim() == 2:
-            x_norm = x_norm.squeeze(0)
-        x = x_norm
+        # Force float32 for the entire block — the SSM scan can produce
+        # values up to ±200K which overflow float16 in the GLU's linears.
+        with torch.amp.autocast('cuda', enabled=False):
+            x = x.float()
+            skip = x
 
-        x = self.layer(x)
-        x = F.gelu(x)
-        x = self.drop(x)
-        x = self.glu(x)
-        x = self.drop(x)
-        return skip + x
+            # BatchNorm expects (N, C, L) format
+            x_t = x
+            if x.dim() == 2:
+                x_t = x_t.unsqueeze(0)
+            x_norm = self.norm(x_t.permute(0, 2, 1)).permute(0, 2, 1)
+            if x.dim() == 2:
+                x_norm = x_norm.squeeze(0)
+            x = x_norm
+
+            x = self.layer(x)
+            x = F.gelu(x)
+            x = self.drop(x)
+            x = self.glu(x)
+            x = self.drop(x)
+            x = skip + x
+
+        return x.to(orig_dtype)

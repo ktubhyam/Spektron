@@ -60,12 +60,24 @@ class PretrainTrainer:
         self.criterion = SpectralFMPretrainLoss(config)
         self.ot_loss = OTAlignmentLoss(config.ot.reg, config.ot.n_iter)
 
-        # Optimizer
-        self.optimizer = AdamW(
-            model.parameters(),
-            lr=config.pretrain.lr,
-            weight_decay=config.pretrain.weight_decay,
-        )
+        # Optimizer — exclude LayerNorm, bias, and embeddings from weight decay
+        decay_params = []
+        no_decay_params = []
+        for name, param in model.named_parameters():
+            if not param.requires_grad:
+                continue
+            # Don't decay: norms, biases, embeddings, 1-d params (scales, etc.)
+            if ('norm' in name or 'ln' in name or 'bias' in name
+                    or 'embedding' in name or 'cls_token' in name
+                    or 'mask_token' in name or 'domain' in name
+                    or param.dim() <= 1):
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+        self.optimizer = AdamW([
+            {'params': decay_params, 'weight_decay': config.pretrain.weight_decay},
+            {'params': no_decay_params, 'weight_decay': 0.0},
+        ], lr=config.pretrain.lr)
 
         # Scheduler: linear warmup + cosine decay
         warmup = LinearLR(
@@ -75,19 +87,24 @@ class PretrainTrainer:
         cosine = CosineAnnealingLR(
             self.optimizer,
             T_max=config.pretrain.max_steps - config.pretrain.warmup_steps,
+            eta_min=config.pretrain.lr * 0.01,  # Don't decay to zero
         )
         self.scheduler = SequentialLR(
             self.optimizer, [warmup, cosine],
             milestones=[config.pretrain.warmup_steps],
         )
 
-        # Mixed precision (PyTorch 2.4+ API)
+        # Mixed precision — use bfloat16 (range 3.39e38) instead of float16
+        # (range 65504) to prevent overflow from D-LinOSS SSM large activations.
+        # bfloat16 does not need GradScaler.
         self.use_amp = torch.cuda.is_available()
-        self.scaler = torch.amp.GradScaler('cuda', enabled=self.use_amp)
+        self.amp_dtype = torch.bfloat16
+        self.scaler = torch.amp.GradScaler('cuda', enabled=False)  # not needed for bf16
 
         # Gradient accumulation
         self.grad_accum_steps = config.pretrain.grad_accumulation_steps
         self._accum_count = 0
+        self._accum_losses = {}  # accumulate losses over grad_accum window
 
         # Move to device
         self.model.to(self.device)
@@ -131,54 +148,94 @@ class PretrainTrainer:
                     output["vib"][k] = output["vib"][k].mean()
         return output
 
-    def train_step(self, batch: Dict) -> Dict[str, float]:
-        """Single training step with mixed precision."""
+    def train_step(self, batch: Dict):
+        """Single training step with mixed precision and gradient accumulation.
+
+        Returns:
+            (losses_dict, did_step): losses averaged over the accumulation window,
+            and whether an optimizer step was taken.
+        """
         self.model.train()
 
         spectrum = batch["spectrum"].to(self.device)
         instrument_id = batch.get("instrument_id")
         if instrument_id is not None:
             instrument_id = instrument_id.to(self.device)
-        # Domain can be str or list[str] — embeddings handle both
+        # Convert domain list[str] to tensor so DataParallel can scatter it.
+        # Without this, both GPUs get the full list and domain[:batch_size]
+        # gives GPU1 the WRONG domains (first N instead of second N).
         domain = batch.get("domain", "NIR")
+        if isinstance(domain, list):
+            _dmap = {"NIR": 0, "IR": 1, "RAMAN": 2, "UNKNOWN": 3}
+            domain = torch.tensor(
+                [_dmap.get(d, 3) for d in domain],
+                dtype=torch.long, device=self.device,
+            )
 
         # Forward with AMP
-        with torch.amp.autocast('cuda', enabled=self.use_amp):
+        with torch.amp.autocast('cuda', dtype=self.amp_dtype, enabled=self.use_amp):
             output = self.model(spectrum, domain, instrument_id)
             output = self._reduce_dp_scalars(output)
             losses = self.criterion(output, instrument_id)
 
-            # OT alignment (group by instrument)
-            if instrument_id is not None and len(instrument_id.unique()) > 1:
-                z_by_inst = {}
-                for inst_id in instrument_id.unique():
-                    mask = instrument_id == inst_id
-                    z_by_inst[inst_id.item()] = output["z_chem"][mask]
-                ot_loss = self.config.pretrain.ot_weight * self.ot_loss(z_by_inst)
+        # OT alignment (outside AMP — Sinkhorn needs fp32 for numerical stability)
+        if instrument_id is not None and len(instrument_id.unique()) > 1:
+            z_chem_f32 = output["z_chem"].float()
+            z_norm = F.normalize(z_chem_f32, dim=-1)
+            z_by_inst = {}
+            for iid in instrument_id.unique():
+                z_by_inst[iid.item()] = z_norm[instrument_id == iid]
+            ot_loss = self.config.pretrain.ot_weight * self.ot_loss(z_by_inst)
+            if not (torch.isnan(ot_loss) or torch.isinf(ot_loss)):
                 losses["ot"] = ot_loss
                 losses["total"] = losses["total"] + ot_loss
 
-        # Backward with gradient scaling + accumulation
-        scaled_loss = self.scaler.scale(losses["total"] / self.grad_accum_steps)
-        scaled_loss.backward()
+        # NaN guard: skip this batch if loss is NaN/Inf
+        if torch.isnan(losses["total"]) or torch.isinf(losses["total"]):
+            self.optimizer.zero_grad()
+            self._accum_count = 0
+            self._accum_losses = {}
+            print(f"  [WARN] NaN/Inf loss at step {self.step}, skipping batch", flush=True)
+            return None, False
 
+        # Backward with gradient accumulation
+        (losses["total"] / self.grad_accum_steps).backward()
+
+        # Accumulate loss values for averaging
+        for k, v in losses.items():
+            self._accum_losses[k] = self._accum_losses.get(k, 0.0) + v.item()
         self._accum_count += 1
 
         if self._accum_count >= self.grad_accum_steps:
-            # Unscale before clipping
-            self.scaler.unscale_(self.optimizer)
             nn.utils.clip_grad_norm_(
                 self.model.parameters(), self.config.pretrain.grad_clip
             )
 
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            # Check for NaN in gradients before stepping
+            has_nan_grad = any(
+                p.grad is not None and torch.isnan(p.grad).any()
+                for p in self.model.parameters()
+            )
+            if has_nan_grad:
+                self.optimizer.zero_grad()
+                self._accum_losses = {}
+                self._accum_count = 0
+                print(f"  [WARN] NaN gradients at step {self.step}, skipping optimizer step", flush=True)
+                return None, False
+
+            self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
+
+            # Average losses over the accumulation window
+            avg_losses = {k: v / self.grad_accum_steps
+                          for k, v in self._accum_losses.items()}
+            self._accum_losses = {}
             self._accum_count = 0
             self.step += 1
+            return avg_losses, True
 
-        return {k: v.item() for k, v in losses.items()}
+        return None, False
 
     @torch.no_grad()
     def validate(self) -> Dict[str, float]:
@@ -195,10 +252,15 @@ class PretrainTrainer:
             instrument_id = batch.get("instrument_id")
             if instrument_id is not None:
                 instrument_id = instrument_id.to(self.device)
-            # Domain can be str or list[str] — embeddings handle both
             domain = batch.get("domain", "NIR")
+            if isinstance(domain, list):
+                _dmap = {"NIR": 0, "IR": 1, "RAMAN": 2, "UNKNOWN": 3}
+                domain = torch.tensor(
+                    [_dmap.get(d, 3) for d in domain],
+                    dtype=torch.long, device=self.device,
+                )
 
-            with torch.amp.autocast('cuda', enabled=self.use_amp):
+            with torch.amp.autocast('cuda', dtype=self.amp_dtype, enabled=self.use_amp):
                 output = self.model(spectrum, domain, instrument_id)
                 output = self._reduce_dp_scalars(output)
                 losses = self.criterion(output, instrument_id)
@@ -216,7 +278,7 @@ class PretrainTrainer:
         save_dir = Path(self.config.checkpoint_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        print(f"Starting pretraining for {max_steps} steps...")
+        print(f"Starting pretraining for {max_steps} steps...", flush=True)
         start_time = time.time()
         self.optimizer.zero_grad()
 
@@ -225,13 +287,18 @@ class PretrainTrainer:
                 if self.step >= max_steps:
                     break
 
-                losses = self.train_step(batch)
+                losses, did_step = self.train_step(batch)
 
-                # Log
-                if self.step % log_every == 0:
+                # Only log/validate/save after an actual optimizer step
+                if not did_step:
+                    continue
+
+                # Log (skip step 0 — it's before any real training)
+                if self.step % log_every == 0 and self.step > 0:
                     elapsed = time.time() - start_time
                     lr = self.scheduler.get_last_lr()[0]
-                    samples_per_sec = self.step * self.config.pretrain.batch_size / max(elapsed, 1)
+                    effective_batch = self.config.pretrain.batch_size * self.grad_accum_steps
+                    samples_per_sec = self.step * effective_batch / max(elapsed, 1)
                     steps_per_sec = self.step / max(elapsed, 1)
                     eta_sec = (max_steps - self.step) / max(steps_per_sec, 1e-8)
                     gpu_mem_gb = torch.cuda.max_memory_allocated() / 1e9 if torch.cuda.is_available() else 0
@@ -247,7 +314,7 @@ class PretrainTrainer:
                         f"ETA: {eta_sec/60:.1f}m | "
                         f"GPU: {gpu_mem_gb:.1f}GB"
                     )
-                    print(log_msg)
+                    print(log_msg, flush=True)
                     self.history.append({"step": self.step, **losses})
 
                     # Log to W&B + JSON
@@ -267,10 +334,10 @@ class PretrainTrainer:
                     }, step=self.step)
 
                 # Validate
-                if self.step % val_every == 0 and self.val_loader:
+                if self.step % val_every == 0 and self.step > 0 and self.val_loader:
                     val_losses = self.validate()
                     val_msg = f"  Val Loss: {val_losses.get('total', 0):.4f}"
-                    print(val_msg)
+                    print(val_msg, flush=True)
 
                     # Log validation to W&B + JSON
                     self.exp_logger.log({
@@ -282,10 +349,10 @@ class PretrainTrainer:
                         self.best_val_loss = val_losses['total']
                         self.save_checkpoint(save_dir / "best_pretrain.pt")
                         self.exp_logger.log_summary({"best_val_loss": self.best_val_loss, "best_step": self.step})
-                        print("  → New best model saved!")
+                        print("  -> New best model saved!", flush=True)
 
-                # Save
-                if self.step % save_every == 0:
+                # Save periodic checkpoint
+                if self.step % save_every == 0 and self.step > 0:
                     self.save_checkpoint(save_dir / f"pretrain_step_{self.step}.pt")
 
         # Final save
@@ -309,14 +376,14 @@ class PretrainTrainer:
 
     def load_checkpoint(self, path: str):
         """Load model checkpoint."""
-        ckpt = torch.load(path, map_location=self.device)
+        ckpt = torch.load(path, map_location=self.device, weights_only=False)
         model_to_load = self.model.module if self.n_gpus > 1 else self.model
         model_to_load.load_state_dict(ckpt["model_state_dict"])
         self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         self.scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         self.step = ckpt["step"]
         self.best_val_loss = ckpt.get("best_val_loss", float('inf'))
-        print(f"Loaded checkpoint from step {self.step}")
+        print(f"Loaded checkpoint from step {self.step}", flush=True)
 
 
 class FinetuneTrainer:

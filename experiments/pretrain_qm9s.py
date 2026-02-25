@@ -63,7 +63,6 @@ def build_qm9s_config(args) -> SpectralFMConfig:
     config.pretrain.warmup_steps = min(1000, config.pretrain.max_steps // 10)
     config.pretrain.mask_type = "contiguous"
     config.pretrain.mask_ratio = 0.20
-    config.pretrain.grad_clip = 1.0
 
     # Gradient accumulation for large sequences
     if not args.light and torch.cuda.is_available():
@@ -74,9 +73,9 @@ def build_qm9s_config(args) -> SpectralFMConfig:
             config.pretrain.grad_accumulation_steps = 4
             config.pretrain.batch_size = 16
         elif n_gpus <= 2:
-            # 2x GPUs (e.g. 2x RTX 5060 Ti 16GB): 16/GPU, accum=2 → effective 64
-            config.pretrain.batch_size = 32
-            config.pretrain.grad_accumulation_steps = 2
+            # 2x GPUs (e.g. 2x RTX 5060 Ti 16GB): 8/GPU (2050-token seq + transformer attn is ~6GB/sample)
+            config.pretrain.batch_size = 16
+            config.pretrain.grad_accumulation_steps = 4
         else:
             # 4+ GPUs (e.g. 4x RTX 5090): 16/GPU, no accum needed
             config.pretrain.batch_size = 64
@@ -172,7 +171,7 @@ def main():
     log.info("Starting QM9S pretraining...")
     history = trainer.train(
         max_steps=config.pretrain.max_steps,
-        log_every=100,
+        log_every=25,
         val_every=1000,
         save_every=5000,
     )

@@ -104,8 +104,8 @@ class VIBConfig:
 @dataclass
 class OTConfig:
     """Optimal Transport alignment configuration."""
-    reg: float = 0.05              # Sinkhorn regularization
-    n_iter: int = 100              # Sinkhorn iterations
+    reg: float = 1.0               # Sinkhorn regularization (>0.5 for 128-dim embeddings)
+    n_iter: int = 50               # Sinkhorn iterations
     method: str = "sinkhorn"       # sinkhorn or emd
     weight: float = 0.1            # Loss weight
 
@@ -155,7 +155,7 @@ class PretrainConfig:
     denoise_weight: float = 0.2
     ot_weight: float = 0.1
     physics_weight: float = 0.1
-    vib_weight: float = 0.05
+    vib_weight: float = 0.15
     moe_balance_weight: float = 0.01
 
     # Training
@@ -164,7 +164,7 @@ class PretrainConfig:
     weight_decay: float = 0.01
     warmup_steps: int = 1000
     max_steps: int = 50000
-    grad_clip: float = 1.0
+    grad_clip: float = 5.0
     grad_accumulation_steps: int = 1  # Accumulate gradients over N steps
     optimizer: str = "adamw"
     scheduler: str = "cosine"

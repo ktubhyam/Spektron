@@ -162,7 +162,7 @@ class WaveletEmbedding(nn.Module):
         """Resolve domain argument to per-sample index tensor.
 
         Args:
-            domain: str, list[str], or None
+            domain: str, list[str], torch.Tensor, or None
             batch_size: B
             device: target device
 
@@ -171,11 +171,13 @@ class WaveletEmbedding(nn.Module):
         """
         if domain is None:
             return torch.full((batch_size,), 3, dtype=torch.long, device=device)
+        if isinstance(domain, torch.Tensor):
+            return domain[:batch_size].to(device)
         if isinstance(domain, str):
             idx = self.domain_map.get(domain, 3)
             return torch.full((batch_size,), idx, dtype=torch.long, device=device)
         # list of strings — per-sample domains
-        indices = [self.domain_map.get(d, 3) for d in domain]
+        indices = [self.domain_map.get(d, 3) for d in domain[:batch_size]]
         return torch.tensor(indices, dtype=torch.long, device=device)
 
     def forward(self, spectrum: torch.Tensor,
@@ -184,7 +186,7 @@ class WaveletEmbedding(nn.Module):
         """
         Args:
             spectrum: (B, L) raw spectrum
-            domain: str, list[str], or None — per-sample domain labels
+            domain: str, list[str], torch.Tensor, or None
             instrument_id: (B,) instrument indices
 
         Returns:
@@ -293,7 +295,7 @@ class RawSpectralEmbedding(nn.Module):
         """Resolve domain argument to per-sample index tensor.
 
         Args:
-            domain: str, list[str], or None
+            domain: str, list[str], torch.Tensor, or None
             batch_size: B
             device: target device
 
@@ -302,11 +304,13 @@ class RawSpectralEmbedding(nn.Module):
         """
         if domain is None:
             return torch.full((batch_size,), 3, dtype=torch.long, device=device)
+        if isinstance(domain, torch.Tensor):
+            return domain[:batch_size].to(device)
         if isinstance(domain, str):
             idx = self.domain_map.get(domain, 3)
             return torch.full((batch_size,), idx, dtype=torch.long, device=device)
         # list of strings — per-sample domains
-        indices = [self.domain_map.get(d, 3) for d in domain]
+        indices = [self.domain_map.get(d, 3) for d in domain[:batch_size]]
         return torch.tensor(indices, dtype=torch.long, device=device)
 
     def forward(self, spectrum: torch.Tensor,

@@ -173,6 +173,23 @@ class FNOTransferHead(nn.Module):
 # Variational Information Bottleneck (VIB) Disentanglement
 # ============================================================
 
+class GradientReversal(torch.autograd.Function):
+    """Gradient Reversal Layer for adversarial training.
+
+    Forward: identity. Backward: negate and scale gradients.
+    This makes z_chem learn to NOT encode instrument info,
+    while the classifier still trains normally.
+    """
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = float(alpha) if isinstance(alpha, torch.Tensor) else alpha
+        return x.clone()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return -ctx.alpha * grad_output, None
+
+
 class VIBHead(nn.Module):
     """Variational Information Bottleneck for disentangling
     chemistry-invariant vs instrument-specific features.
@@ -251,7 +268,10 @@ class VIBHead(nn.Module):
 
         # Classifier outputs
         inst_from_inst = self.inst_classifier(z_inst)
-        inst_from_chem = self.chem_inst_classifier(z_chem)
+        # Gradient reversal: classifier trains to predict instrument from z_chem,
+        # but reversed gradients make z_chem learn to NOT encode instrument info
+        z_chem_reversed = GradientReversal.apply(z_chem, 1.0)
+        inst_from_chem = self.chem_inst_classifier(z_chem_reversed)
 
         return {
             "z_chem": z_chem,

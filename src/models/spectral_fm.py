@@ -33,6 +33,9 @@ class SpectralFM(nn.Module):
         self.config = config
         d = config.d_model
 
+        # ========== Learnable mask token ==========
+        self.mask_token = nn.Parameter(torch.randn(1, 1, d) * 0.02)
+
         # ========== Embedding ==========
         if config.use_raw_embedding:
             self.embedding = RawSpectralEmbedding(
@@ -188,6 +191,9 @@ class SpectralFM(nn.Module):
                          instrument_id: Optional[torch.Tensor] = None) -> Dict:
         """Forward pass for pretraining (MSRP + auxiliary losses).
 
+        Applies mask BEFORE encoding so the model must predict masked
+        positions from context (BERT-style), not just copy the input.
+
         Args:
             spectrum: (B, L) input spectrum
             mask: (B, N) binary mask (1 = masked, 0 = visible)
@@ -198,17 +204,40 @@ class SpectralFM(nn.Module):
         Returns:
             dict with reconstructions, latents, losses
         """
-        enc = self.encode(spectrum, domain, instrument_id)
-        reconstruction = self.reconstruction_head(enc["patch_tokens"])
+        # 1. Embed the full spectrum to get token representations
+        tokens = self.embedding(spectrum, domain, instrument_id)
+        # tokens: (B, N+2, d_model) where first 2 are [CLS, DOMAIN]
+
+        # 2. Apply mask to content tokens (skip CLS + DOMAIN at positions 0,1)
+        #    Replace masked token embeddings with learnable [MASK] token
+        mask_expanded = mask.unsqueeze(-1)  # (B, N, 1)
+        content_tokens = tokens[:, 2:]      # (B, N, d_model)
+        mask_tok = self.mask_token.expand_as(content_tokens)
+        # Where mask==1, use mask_token; where mask==0, keep original
+        content_tokens = content_tokens * (1 - mask_expanded) + mask_tok * mask_expanded
+        tokens = torch.cat([tokens[:, :2], content_tokens], dim=1)
+
+        # 3. Run masked tokens through backbone → MoE → Transformer → VIB
+        tokens = self.backbone(tokens)
+        tokens, moe_loss = self.moe(tokens)
+        tokens = self.transformer(tokens)
+
+        cls_token = tokens[:, 0]
+        patch_tokens = tokens[:, 2:]
+
+        vib_out = self.vib(cls_token)
+
+        # 4. Reconstruct from the encoded (masked) representations
+        reconstruction = self.reconstruction_head(patch_tokens)
 
         return {
             "reconstruction": reconstruction,
-            "z_chem": enc["z_chem"],
-            "z_inst": enc["z_inst"],
-            "vib": enc["vib"],
-            "moe_loss": enc["moe_loss"],
-            "patch_tokens": enc["patch_tokens"],
-            "cls_token": enc["cls_token"],
+            "z_chem": vib_out["z_chem"],
+            "z_inst": vib_out["z_inst"],
+            "vib": vib_out,
+            "moe_loss": moe_loss,
+            "patch_tokens": patch_tokens,
+            "cls_token": cls_token,
         }
 
     def transfer_forward(self, source_spectrum: torch.Tensor,
