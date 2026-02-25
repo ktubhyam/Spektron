@@ -81,9 +81,13 @@ class PretrainTrainer:
             milestones=[config.pretrain.warmup_steps],
         )
 
-        # Mixed precision
+        # Mixed precision (PyTorch 2.4+ API)
         self.use_amp = torch.cuda.is_available()
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_amp)
+        self.scaler = torch.amp.GradScaler('cuda', enabled=self.use_amp)
+
+        # Gradient accumulation
+        self.grad_accum_steps = config.pretrain.grad_accumulation_steps
+        self._accum_count = 0
 
         # Move to device
         self.model.to(self.device)
@@ -135,12 +139,11 @@ class PretrainTrainer:
         instrument_id = batch.get("instrument_id")
         if instrument_id is not None:
             instrument_id = instrument_id.to(self.device)
+        # Domain can be str or list[str] — embeddings handle both
         domain = batch.get("domain", "NIR")
-        if isinstance(domain, list):
-            domain = domain[0]  # Take first (all same in batch typically)
 
         # Forward with AMP
-        with torch.cuda.amp.autocast(enabled=self.use_amp):
+        with torch.amp.autocast('cuda', enabled=self.use_amp):
             output = self.model(spectrum, domain, instrument_id)
             output = self._reduce_dp_scalars(output)
             losses = self.criterion(output, instrument_id)
@@ -155,21 +158,25 @@ class PretrainTrainer:
                 losses["ot"] = ot_loss
                 losses["total"] = losses["total"] + ot_loss
 
-        # Backward with gradient scaling
-        self.optimizer.zero_grad()
-        self.scaler.scale(losses["total"]).backward()
+        # Backward with gradient scaling + accumulation
+        scaled_loss = self.scaler.scale(losses["total"] / self.grad_accum_steps)
+        scaled_loss.backward()
 
-        # Unscale before clipping
-        self.scaler.unscale_(self.optimizer)
-        nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.config.pretrain.grad_clip
-        )
+        self._accum_count += 1
 
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
-        self.scheduler.step()
+        if self._accum_count >= self.grad_accum_steps:
+            # Unscale before clipping
+            self.scaler.unscale_(self.optimizer)
+            nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.config.pretrain.grad_clip
+            )
 
-        self.step += 1
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+            self.optimizer.zero_grad()
+            self.scheduler.step()
+            self._accum_count = 0
+            self.step += 1
 
         return {k: v.item() for k, v in losses.items()}
 
@@ -188,11 +195,10 @@ class PretrainTrainer:
             instrument_id = batch.get("instrument_id")
             if instrument_id is not None:
                 instrument_id = instrument_id.to(self.device)
+            # Domain can be str or list[str] — embeddings handle both
             domain = batch.get("domain", "NIR")
-            if isinstance(domain, list):
-                domain = domain[0]
 
-            with torch.cuda.amp.autocast(enabled=self.use_amp):
+            with torch.amp.autocast('cuda', enabled=self.use_amp):
                 output = self.model(spectrum, domain, instrument_id)
                 output = self._reduce_dp_scalars(output)
                 losses = self.criterion(output, instrument_id)
@@ -212,6 +218,7 @@ class PretrainTrainer:
 
         print(f"Starting pretraining for {max_steps} steps...")
         start_time = time.time()
+        self.optimizer.zero_grad()
 
         while self.step < max_steps:
             for batch in self.train_loader:

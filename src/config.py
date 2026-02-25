@@ -35,6 +35,23 @@ class MambaConfig:
 
 
 @dataclass
+class DLinOSSConfig:
+    """Damped Linear Oscillatory State-Space Model configuration.
+
+    D-LinOSS dynamics are mathematically identical to damped harmonic
+    oscillators, matching the physics of molecular vibrations.
+    """
+    d_model: int = 256
+    d_state: int = 128             # Number of oscillators (P)
+    n_layers: int = 4              # Number of D-LinOSS blocks
+    r_min: float = 0.9             # Min spectral radius (init)
+    r_max: float = 1.0             # Max spectral radius (init)
+    theta_max: float = 3.14159     # Max oscillation angle (pi)
+    dropout: float = 0.05          # Dropout rate
+    layer_name: str = "Damped"     # "Damped", "IM", or "IMEX"
+
+
+@dataclass
 class TransformerConfig:
     """Transformer block configuration."""
     d_model: int = 256
@@ -148,6 +165,7 @@ class PretrainConfig:
     warmup_steps: int = 1000
     max_steps: int = 50000
     grad_clip: float = 1.0
+    grad_accumulation_steps: int = 1  # Accumulate gradients over N steps
     optimizer: str = "adamw"
     scheduler: str = "cosine"
 
@@ -180,11 +198,17 @@ class SpectralFMConfig:
     name: str = "SpectralFM-v2"
     seed: int = 42
 
+    # Backbone selection: "mamba" or "dlinoss"
+    backbone: str = "mamba"
+
     # Input
     n_channels: int = 2048         # Resample all spectra to this
     patch_size: int = 32
     stride: int = 16
-    n_patches: int = 127           # (2048 - 32) / 16 + 1
+
+    # Embedding: "wavelet" (patched) or "raw" (no patching, for D-LinOSS)
+    embedding_type: str = "wavelet"
+    raw_embed_kernel: int = 15     # Local Conv1d kernel for raw embedding
 
     # Domain tokens
     domain_tokens: List[str] = field(
@@ -194,6 +218,7 @@ class SpectralFMConfig:
     # Sub-configs
     wavelet: WaveletConfig = field(default_factory=WaveletConfig)
     mamba: MambaConfig = field(default_factory=MambaConfig)
+    dlinoss: DLinOSSConfig = field(default_factory=DLinOSSConfig)
     transformer: TransformerConfig = field(default_factory=TransformerConfig)
     moe: MoEConfig = field(default_factory=MoEConfig)
     fno: FNOConfig = field(default_factory=FNOConfig)
@@ -216,15 +241,34 @@ class SpectralFMConfig:
 
     @property
     def d_model(self) -> int:
+        if self.backbone == "dlinoss":
+            return self.dlinoss.d_model
         return self.mamba.d_model
+
+    @property
+    def n_patches(self) -> int:
+        """Number of patches for wavelet/patched embedding."""
+        return (self.n_channels - self.patch_size) // self.stride + 1
 
     @property
     def total_latent_dim(self) -> int:
         return self.vib.z_chem_dim + self.vib.z_inst_dim
 
+    @property
+    def use_raw_embedding(self) -> bool:
+        """Whether to use raw (non-patched) embedding."""
+        return self.embedding_type == "raw"
+
+    @property
+    def seq_len(self) -> int:
+        """Effective sequence length after embedding (excluding special tokens)."""
+        if self.use_raw_embedding:
+            return self.n_channels  # 2048 raw points
+        return self.n_patches       # 127 patches
+
 
 def get_light_config() -> SpectralFMConfig:
-    """Get a lightweight configuration for fast CPU testing."""
+    """Get a lightweight configuration for fast CPU testing (Mamba backbone)."""
     cfg = SpectralFMConfig()
 
     # Smaller model dimensions
@@ -232,6 +276,72 @@ def get_light_config() -> SpectralFMConfig:
     cfg.mamba.d_state = 8
     cfg.mamba.n_layers = 2
     cfg.mamba.expand = 1
+
+    cfg.transformer.d_model = 64
+    cfg.transformer.n_heads = 4
+    cfg.transformer.n_layers = 1
+    cfg.transformer.d_ff = 128
+
+    cfg.moe.n_experts = 2
+    cfg.moe.d_expert = 128
+
+    cfg.vib.z_chem_dim = 32
+    cfg.vib.z_inst_dim = 16
+
+    cfg.fno.width = 16
+    cfg.fno.modes = 8
+    cfg.fno.n_layers = 2
+
+    return cfg
+
+
+def get_dlinoss_config() -> SpectralFMConfig:
+    """Get D-LinOSS configuration for Paper 1.
+
+    Uses raw spectral embedding (no patching) + D-LinOSS backbone.
+    Processes all 2048 spectral points directly with O(n) complexity.
+    """
+    cfg = SpectralFMConfig()
+
+    # D-LinOSS backbone
+    cfg.backbone = "dlinoss"
+    cfg.embedding_type = "raw"
+
+    cfg.dlinoss.d_model = 256
+    cfg.dlinoss.d_state = 128      # 128 oscillators per layer
+    cfg.dlinoss.n_layers = 4
+    cfg.dlinoss.dropout = 0.05
+
+    cfg.transformer.d_model = 256
+    cfg.transformer.n_heads = 8
+    cfg.transformer.n_layers = 2
+    cfg.transformer.d_ff = 1024
+
+    cfg.moe.n_experts = 4
+    cfg.moe.d_expert = 512
+
+    cfg.vib.z_chem_dim = 128
+    cfg.vib.z_inst_dim = 64
+
+    cfg.fno.width = 64
+    cfg.fno.modes = 32
+    cfg.fno.n_layers = 4
+
+    return cfg
+
+
+def get_light_dlinoss_config() -> SpectralFMConfig:
+    """Get a lightweight D-LinOSS configuration for fast CPU testing."""
+    cfg = SpectralFMConfig()
+
+    cfg.backbone = "dlinoss"
+    cfg.embedding_type = "raw"
+    cfg.n_channels = 256           # Shorter sequence for CPU testing
+
+    cfg.dlinoss.d_model = 64
+    cfg.dlinoss.d_state = 32
+    cfg.dlinoss.n_layers = 2
+    cfg.dlinoss.dropout = 0.05
 
     cfg.transformer.d_model = 64
     cfg.transformer.n_heads = 4

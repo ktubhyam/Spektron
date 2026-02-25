@@ -307,22 +307,235 @@ def test_logger():
     print("    JSON logging OK")
 
 
+# ===== D-LinOSS Tests =====
+
+def test_dlinoss_config():
+    """Test D-LinOSS config creation."""
+    from src.config import get_dlinoss_config, get_light_dlinoss_config
+    cfg = get_dlinoss_config()
+    assert cfg.backbone == "dlinoss"
+    assert cfg.embedding_type == "raw"
+    assert cfg.d_model == 256
+    assert cfg.dlinoss.d_state == 128
+    assert cfg.use_raw_embedding == True
+    assert cfg.seq_len == 2048
+
+    light = get_light_dlinoss_config()
+    assert light.backbone == "dlinoss"
+    assert light.n_channels == 256
+    assert light.seq_len == 256
+    print(f"    D-LinOSS config: d_model={cfg.d_model}, d_state={cfg.dlinoss.d_state}, layers={cfg.dlinoss.n_layers}")
+
+
+def test_linoss_scan():
+    """Test the vendored parallel associative scan."""
+    import torch
+    from src.models.linoss.scan import associative_scan
+
+    # Simple prefix sum test
+    def add(a, b):
+        return a + b
+
+    x = torch.arange(1, 9, dtype=torch.float32)  # [1, 2, 3, 4, 5, 6, 7, 8]
+    result = associative_scan(add, x, axis=0)
+    expected = torch.cumsum(x, dim=0)  # [1, 3, 6, 10, 15, 21, 28, 36]
+    assert torch.allclose(result, expected), f"Scan failed: {result} vs {expected}"
+    print(f"    Prefix sum scan: {result.tolist()}")
+
+
+def test_damped_layer():
+    """Test DampedLayer forward pass."""
+    import torch
+    from src.models.linoss.layers import DampedLayer
+
+    layer = DampedLayer(state_dim=32, hidden_dim=64, r_min=0.9, r_max=1.0, theta_max=3.14159)
+    x = torch.randn(2, 50, 64)  # (B, L, H)
+    y = layer(x)
+    assert y.shape == x.shape, f"DampedLayer: {y.shape} != {x.shape}"
+    assert torch.isfinite(y).all(), "DampedLayer has non-finite outputs"
+
+    # Check learned frequency extraction
+    freqs = layer.learned_frequencies
+    assert freqs.shape == (32,), f"Frequencies shape: {freqs.shape}"
+    print(f"    DampedLayer: {x.shape} -> {y.shape}, {freqs.shape[0]} frequencies")
+
+
+def test_dlinoss_backbone():
+    """Test full DLinOSSBackbone."""
+    import torch
+    from src.models.dlinoss import DLinOSSBackbone
+
+    backbone = DLinOSSBackbone(d_model=64, n_layers=2, d_state=32, dropout=0.05)
+    x = torch.randn(2, 100, 64)  # (B, L, H)
+    y = backbone(x)
+    assert y.shape == x.shape, f"DLinOSSBackbone: {y.shape} != {x.shape}"
+
+    # Check frequency extraction
+    freqs = backbone.learned_frequencies
+    assert len(freqs) == 2, f"Expected 2 layers of frequencies, got {len(freqs)}"
+    print(f"    DLinOSSBackbone: {x.shape} -> {y.shape}")
+
+
+def test_raw_embedding():
+    """Test RawSpectralEmbedding (no patching)."""
+    import torch
+    from src.models.embedding import RawSpectralEmbedding
+
+    embed = RawSpectralEmbedding(d_model=64, n_channels=256, kernel_size=15)
+    x = torch.randn(2, 256)
+    tokens = embed(x, domain="IR")
+    expected_shape = (2, 256 + 2, 64)  # +2 for CLS + domain
+    assert tokens.shape == expected_shape, f"Raw embed: {tokens.shape}, expected {expected_shape}"
+    assert torch.isfinite(tokens).all()
+    print(f"    RawSpectralEmbedding: (2, 256) -> {tokens.shape}")
+
+
+def test_dlinoss_full_forward():
+    """Test full SpectralFM with D-LinOSS backbone."""
+    import torch
+    from src.config import get_light_dlinoss_config
+    from src.models.spectral_fm import SpectralFM
+
+    cfg = get_light_dlinoss_config()
+    model = SpectralFM(cfg)
+    x = torch.randn(2, cfg.n_channels)  # (B, 256)
+
+    enc = model.encode(x, domain="IR")
+    print(f"    D-LinOSS encode: z_chem={enc['z_chem'].shape}, tokens={enc['tokens'].shape}")
+    assert enc['z_chem'].shape == (2, cfg.vib.z_chem_dim)
+    assert enc['z_inst'].shape == (2, cfg.vib.z_inst_dim)
+
+
+def test_dlinoss_full_backward():
+    """Test full backward pass through D-LinOSS model."""
+    import torch
+    from src.config import get_light_dlinoss_config
+    from src.models.spectral_fm import SpectralFM
+
+    cfg = get_light_dlinoss_config()
+    model = SpectralFM(cfg)
+    x = torch.randn(2, cfg.n_channels)
+
+    enc = model.encode(x, domain="RAMAN")
+    loss = enc["z_chem"].sum() + enc["moe_loss"]
+    loss.backward()
+
+    n_grad = sum(1 for p in model.parameters() if p.grad is not None)
+    n_total = sum(1 for p in model.parameters())
+    print(f"    D-LinOSS backward: {n_grad}/{n_total} params have gradients")
+    assert n_grad > 0, "No gradients in D-LinOSS model!"
+
+
+def test_dlinoss_pretrain():
+    """Test D-LinOSS pretraining forward pass."""
+    import torch
+    from src.config import get_light_dlinoss_config
+    from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+
+    cfg = get_light_dlinoss_config()
+    model = SpectralFM(cfg)
+    pretrain = SpectralFMForPretraining(model, cfg)
+
+    x = torch.randn(2, cfg.n_channels)
+    output = pretrain(x, domain="IR")
+
+    print(f"    D-LinOSS pretrain: recon={output['reconstruction'].shape}, mask={output['mask'].shape}")
+    assert output['reconstruction'].shape[0] == 2
+    assert output['mask'].shape == (2, cfg.seq_len)
+
+
+def test_per_sample_domain():
+    """Test per-sample domain embedding with mixed modality batches."""
+    import torch
+    from src.models.embedding import RawSpectralEmbedding, WaveletEmbedding
+
+    # Raw embedding with list of domains
+    embed_raw = RawSpectralEmbedding(d_model=64, n_channels=256, kernel_size=15)
+    x = torch.randn(4, 256)
+    domains = ["IR", "RAMAN", "IR", "RAMAN"]
+    tokens = embed_raw(x, domain=domains)
+    assert tokens.shape == (4, 258, 64)
+    # Domain tokens at position 1 should differ between IR and RAMAN
+    assert not torch.allclose(tokens[0, 1], tokens[1, 1]), "IR and RAMAN domain tokens should differ"
+    print(f"    Per-sample domain (raw): (4, 256) + {domains} -> {tokens.shape}")
+
+    # Wavelet embedding with list of domains
+    embed_wav = WaveletEmbedding(d_model=64, n_channels=2048, wavelet_levels=4, patch_size=32, stride=16)
+    x2 = torch.randn(2, 2048)
+    domains2 = ["NIR", "IR"]
+    tokens2 = embed_wav(x2, domain=domains2)
+    assert tokens2.shape[0] == 2
+    assert not torch.allclose(tokens2[0, 1], tokens2[1, 1]), "NIR and IR domain tokens should differ"
+    print(f"    Per-sample domain (wavelet): (2, 2048) + {domains2} -> {tokens2.shape}")
+
+
+def test_mask_scaling():
+    """Test that raw mode auto-scales mask_patch_size."""
+    import torch
+    from src.config import get_light_dlinoss_config
+    from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+
+    cfg = get_light_dlinoss_config()
+    assert cfg.pretrain.mask_patch_size == 3, "Default should be 3"
+
+    model = SpectralFM(cfg)
+    pretrain = SpectralFMForPretraining(model, cfg)
+
+    x = torch.randn(2, cfg.n_channels)
+    output = pretrain(x, domain="IR")
+
+    # Mask should exist and have contiguous blocks >= patch_size
+    mask = output['mask']
+    assert mask.shape == (2, cfg.n_channels)
+    # Check that masked regions form blocks of at least patch_size
+    # (not isolated 3-point blocks)
+    for i in range(mask.shape[0]):
+        masked_indices = torch.where(mask[i] == 1)[0]
+        if len(masked_indices) > 1:
+            diffs = masked_indices[1:] - masked_indices[:-1]
+            max_consecutive = 1
+            current = 1
+            for d in diffs:
+                if d == 1:
+                    current += 1
+                    max_consecutive = max(max_consecutive, current)
+                else:
+                    current = 1
+            assert max_consecutive >= cfg.patch_size, \
+                f"Expected contiguous blocks >= {cfg.patch_size}, got {max_consecutive}"
+            break
+    print(f"    Mask scaling: patch_size={cfg.patch_size}, mask blocks are contiguous")
+
+
+def test_n_patches_computed():
+    """Test that n_patches is correctly computed from n_channels/patch_size/stride."""
+    from src.config import SpectralFMConfig, get_light_dlinoss_config
+
+    cfg = SpectralFMConfig()
+    assert cfg.n_patches == 127, f"Default: expected 127, got {cfg.n_patches}"
+
+    cfg2 = get_light_dlinoss_config()
+    expected = (256 - 32) // 16 + 1  # = 15
+    assert cfg2.n_patches == expected, f"Light D-LinOSS: expected {expected}, got {cfg2.n_patches}"
+    print(f"    n_patches computed: default={SpectralFMConfig().n_patches}, light_dlinoss={cfg2.n_patches}")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("SpectralFM v2 — Smoke Test Suite")
     print("=" * 60)
-    
+
     print("\n--- 1. Imports ---")
     test("imports", test_imports)
-    
+
     print("\n--- 2. Config ---")
     test("config", test_config)
-    
+
     print("\n--- 3. Data ---")
     test("corn data", test_data_corn)
     test("tablet data", test_data_tablet)
-    
-    print("\n--- 4. Individual Modules ---")
+
+    print("\n--- 4. Individual Modules (Mamba) ---")
     test("wavelet_embedding", test_wavelet_embedding)
     test("mamba", test_mamba)
     test("moe", test_moe)
@@ -330,15 +543,15 @@ if __name__ == "__main__":
     test("vib_head", test_vib_head)
     test("reconstruction_head", test_reconstruction_head)
     test("fno_head", test_fno_head)
-    
+
     print("\n--- 5. Losses ---")
     test("losses", test_losses)
-    
-    print("\n--- 6. Full Model ---")
+
+    print("\n--- 6. Full Model (Mamba) ---")
     test("full_forward", test_full_forward)
     test("full_backward", test_full_backward)
     test("pretrain_forward", test_pretrain_forward)
-    
+
     print("\n--- 7. Test-Time Training ---")
     test("ttt", test_ttt)
 
@@ -346,6 +559,21 @@ if __name__ == "__main__":
     test("wavelet_pywt", test_wavelet_pywt)
     test("lora_injection", test_lora_injection)
     test("logger", test_logger)
+
+    print("\n--- 9. D-LinOSS Backbone ---")
+    test("dlinoss_config", test_dlinoss_config)
+    test("linoss_scan", test_linoss_scan)
+    test("damped_layer", test_damped_layer)
+    test("dlinoss_backbone", test_dlinoss_backbone)
+    test("raw_embedding", test_raw_embedding)
+    test("dlinoss_full_forward", test_dlinoss_full_forward)
+    test("dlinoss_full_backward", test_dlinoss_full_backward)
+    test("dlinoss_pretrain", test_dlinoss_pretrain)
+
+    print("\n--- 10. Bug Fixes ---")
+    test("per_sample_domain", test_per_sample_domain)
+    test("mask_scaling", test_mask_scaling)
+    test("n_patches_computed", test_n_patches_computed)
 
     print("\n" + "=" * 60)
     print("RESULTS SUMMARY")
@@ -355,11 +583,11 @@ if __name__ == "__main__":
     print(f"  {PASS} Passed: {passed}")
     print(f"  {FAIL} Failed: {failed}")
     print(f"  Total: {passed + failed}")
-    
+
     if failed > 0:
         print(f"\nFailed tests:")
         for name, status, err in results:
             if status == FAIL:
                 print(f"  {FAIL} {name}: {err}")
-    
+
     sys.exit(0 if failed == 0 else 1)

@@ -1,0 +1,28 @@
+{
+  "mamba": {
+    "name": "Mamba (patched)",
+    "backbone": "mamba",
+    "n_params": 253978,
+    "seq_len": 127,
+    "d_model": 64,
+    "avg_forward_ms": 245.9,
+    "avg_backward_ms": 4987.9,
+    "avg_step_ms": 5233.8,
+    "final_loss": 0.011679,
+    "initial_loss": 1.128099,
+    "loss_reduction": 1.11642
+  },
+  "dlinoss": {
+    "name": "D-LinOSS (raw)",
+    "backbone": "dlinoss",
+    "n_params": 207043,
+    "seq_len": 256,
+    "d_model": 64,
+    "avg_forward_ms": 208.0,
+    "avg_backward_ms": 550.5,
+    "avg_step_ms": 758.4,
+    "final_loss": 0.013057,
+    "initial_loss": 0.649698,
+    "loss_reduction": 0.636641
+  }
+}

@@ -1,6 +1,9 @@
 """
-SpectralFM v2: Wavelet Multi-Scale Embedding
-Replaces naive patching with DWT-based multi-scale tokenization.
+SpectralFM v2: Spectral Embeddings
+
+Two embedding modes:
+1. WaveletEmbedding: DWT-based multi-scale tokenization with patching (stride=16, 127 tokens)
+2. RawSpectralEmbedding: No patching, all 2048 points as tokens (for D-LinOSS backbone)
 """
 import torch
 import torch.nn as nn
@@ -154,13 +157,34 @@ class WaveletEmbedding(nn.Module):
         }
         return result
 
+    def _resolve_domain_indices(self, domain, batch_size: int,
+                                device: torch.device) -> torch.Tensor:
+        """Resolve domain argument to per-sample index tensor.
+
+        Args:
+            domain: str, list[str], or None
+            batch_size: B
+            device: target device
+
+        Returns:
+            (B,) long tensor of domain indices
+        """
+        if domain is None:
+            return torch.full((batch_size,), 3, dtype=torch.long, device=device)
+        if isinstance(domain, str):
+            idx = self.domain_map.get(domain, 3)
+            return torch.full((batch_size,), idx, dtype=torch.long, device=device)
+        # list of strings — per-sample domains
+        indices = [self.domain_map.get(d, 3) for d in domain]
+        return torch.tensor(indices, dtype=torch.long, device=device)
+
     def forward(self, spectrum: torch.Tensor,
-                domain: Optional[str] = None,
+                domain=None,
                 instrument_id: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Args:
             spectrum: (B, L) raw spectrum
-            domain: domain string ("NIR", "IR", "RAMAN")
+            domain: str, list[str], or None — per-sample domain labels
             instrument_id: (B,) instrument indices
 
         Returns:
@@ -206,16 +230,9 @@ class WaveletEmbedding(nn.Module):
         # 6. Positional encoding
         tokens = self.pos_enc(tokens)
 
-        # 7. Prepend domain token
-        if domain is not None:
-            domain_idx = self.domain_map.get(domain, 3)
-            domain_tok = self.domain_embeddings(
-                torch.tensor([domain_idx], device=tokens.device)
-            ).unsqueeze(0).expand(B, -1, -1)
-        else:
-            domain_tok = self.domain_embeddings(
-                torch.tensor([3], device=tokens.device)
-            ).unsqueeze(0).expand(B, -1, -1)
+        # 7. Prepend domain token (per-sample)
+        domain_indices = self._resolve_domain_indices(domain, B, tokens.device)
+        domain_tok = self.domain_embeddings(domain_indices).unsqueeze(1)  # (B, 1, d_model)
 
         # 8. Prepend CLS token
         cls = self.cls_token.expand(B, -1, -1)
@@ -223,3 +240,111 @@ class WaveletEmbedding(nn.Module):
         tokens = torch.cat([cls, domain_tok, tokens], dim=1)  # (B, N+2, d_model)
 
         return tokens
+
+
+class RawSpectralEmbedding(nn.Module):
+    """Raw spectral embedding WITHOUT patching.
+
+    Each spectral point becomes a token, preserving full resolution.
+    Uses a local Conv1d (stride=1) for neighborhood context extraction
+    without reducing the sequence length.
+
+    This is the key architectural choice for D-LinOSS:
+    - No information loss from patching
+    - D-LinOSS processes the full 2048-point sequence in O(n)
+    - Each token has local spectral context via the Conv1d
+    - Wavenumber positional encoding provides physics-aware position info
+
+    Input:  (B, 2048) raw spectrum
+    Output: (B, 2050, d_model) = [CLS, MODALITY, 2048 tokens]
+    """
+
+    def __init__(self, d_model: int = 256, n_channels: int = 2048,
+                 kernel_size: int = 15, dropout: float = 0.1):
+        super().__init__()
+        self.d_model = d_model
+        self.n_channels = n_channels
+
+        # Local feature extraction (stride=1, preserves sequence length)
+        # kernel_size=15 gives each token awareness of ~15 neighboring points
+        padding = kernel_size // 2
+        self.local_conv = nn.Conv1d(
+            1, d_model, kernel_size=kernel_size, stride=1, padding=padding
+        )
+
+        # Layer norm after projection
+        self.norm = nn.LayerNorm(d_model)
+
+        # Positional encoding
+        self.pos_enc = WavenumberPositionalEncoding(d_model, max_len=n_channels + 2)
+
+        # Domain token embeddings
+        self.domain_embeddings = nn.Embedding(4, d_model)  # NIR, IR, RAMAN, UNKNOWN
+        self.domain_map = {"NIR": 0, "IR": 1, "RAMAN": 2, "UNKNOWN": 3}
+
+        # CLS token
+        self.cls_token = nn.Parameter(torch.randn(1, 1, d_model) * 0.02)
+
+        # Dropout
+        self.dropout = nn.Dropout(dropout)
+
+    def _resolve_domain_indices(self, domain, batch_size: int,
+                                device: torch.device) -> torch.Tensor:
+        """Resolve domain argument to per-sample index tensor.
+
+        Args:
+            domain: str, list[str], or None
+            batch_size: B
+            device: target device
+
+        Returns:
+            (B,) long tensor of domain indices
+        """
+        if domain is None:
+            return torch.full((batch_size,), 3, dtype=torch.long, device=device)
+        if isinstance(domain, str):
+            idx = self.domain_map.get(domain, 3)
+            return torch.full((batch_size,), idx, dtype=torch.long, device=device)
+        # list of strings — per-sample domains
+        indices = [self.domain_map.get(d, 3) for d in domain]
+        return torch.tensor(indices, dtype=torch.long, device=device)
+
+    def forward(self, spectrum: torch.Tensor,
+                domain=None,
+                instrument_id: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Args:
+            spectrum: (B, L) raw spectrum
+            domain: str, list[str], or None — per-sample domain labels
+            instrument_id: (B,) instrument indices (unused, for API compat)
+
+        Returns:
+            tokens: (B, L+2, d_model) where L = n_channels
+        """
+        B = spectrum.size(0)
+
+        # 1. Local feature extraction (stride=1, no downsampling)
+        x = spectrum.unsqueeze(1)  # (B, 1, L)
+        tokens = self.local_conv(x)  # (B, d_model, L)
+        tokens = tokens.transpose(1, 2)  # (B, L, d_model)
+
+        # Ensure correct sequence length (padding might add 1)
+        if tokens.size(1) > self.n_channels:
+            tokens = tokens[:, :self.n_channels, :]
+
+        tokens = self.norm(tokens)
+
+        # 2. Positional encoding
+        tokens = self.pos_enc(tokens)
+
+        # 3. Domain token (per-sample)
+        domain_indices = self._resolve_domain_indices(domain, B, tokens.device)
+        domain_tok = self.domain_embeddings(domain_indices).unsqueeze(1)  # (B, 1, d_model)
+
+        # 4. CLS token
+        cls = self.cls_token.expand(B, -1, -1)
+
+        # 5. Concatenate: [CLS, DOMAIN, tokens...]
+        tokens = torch.cat([cls, domain_tok, tokens], dim=1)  # (B, L+2, d_model)
+
+        return self.dropout(tokens)

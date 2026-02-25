@@ -349,9 +349,8 @@ class SpectralFMPretrainLoss(nn.Module):
         pc = config.pretrain
 
         self.msrp = MSRPLoss()
-        self.contrastive = ContrastiveLoss()
-        self.denoise = DenoisingLoss()
-        self.ot = OTAlignmentLoss(config.ot.reg, config.ot.n_iter)
+        # ContrastiveLoss and DenoisingLoss are available as standalone classes
+        # but not wired into the combined loss (require paired/noisy data paths).
         self.physics = PhysicsInformedLoss(
             config.physics.smoothness_weight,
             config.physics.non_negativity_weight,
@@ -363,9 +362,6 @@ class SpectralFMPretrainLoss(nn.Module):
 
         # Weights
         self.w_msrp = pc.msrp_weight
-        self.w_contrastive = pc.contrastive_weight
-        self.w_denoise = pc.denoise_weight
-        self.w_ot = pc.ot_weight
         self.w_physics = pc.physics_weight
         self.w_vib = pc.vib_weight
         self.w_moe = pc.moe_balance_weight

@@ -35,6 +35,10 @@ pyyaml>=6.0
 # Optional — Enhanced Performance
 # mamba-ssm>=1.2.0  # CUDA Mamba kernels (Linux + CUDA only)
 # neuraloperator>=0.3.0  # Reference FNO implementation
+# triton>=3.0.0  # GPU-accelerated parallel scan for D-LinOSS (Linux + CUDA)
+
+# Molecular Symmetry (for R(G,N) computation)
+# pymsym>=0.4.0  # Point group detection from 3D coordinates
 
 # Experiment Tracking
 wandb>=0.15.0
