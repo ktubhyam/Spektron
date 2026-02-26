@@ -1,16 +1,16 @@
-# SpectralFM — Setup Instructions
+# Spektron — Setup Instructions
 
 ## Step 1: Extract the Project
-Download `SpectralFM-project.tar.gz` from the Claude chat, then:
+Download `Spektron-project.tar.gz` from the Claude chat, then:
 ```bash
 cd /Users/admin/Documents/GitHub
-tar xzf ~/Downloads/SpectralFM-project.tar.gz
-# This creates SpectralFM/ with all code, data, and docs
+tar xzf ~/Downloads/Spektron-project.tar.gz
+# This creates Spektron/ with all code, data, and docs
 ```
 
 ## Step 2: Set Up Python Environment
 ```bash
-cd /Users/admin/Documents/GitHub/SpectralFM
+cd /Users/admin/Documents/GitHub/Spektron
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -24,7 +24,7 @@ This runs 15 tests. Expect some failures initially — that's what Claude Code w
 
 ## Step 4: Open in VS Code + Claude Code
 ```bash
-code /Users/admin/Documents/GitHub/SpectralFM
+code /Users/admin/Documents/GitHub/Spektron
 ```
 Then in VS Code terminal:
 ```bash

@@ -108,9 +108,9 @@ noncentrosymmetric = [C1, Cs, C2, C2v]
 
 ```python
 # Train three models:
-R2_IR = train(SpectralFM, modalities=['IR'])
-R2_Raman = train(SpectralFM, modalities=['Raman'])
-R2_both = train(SpectralFM, modalities=['IR', 'Raman'])
+R2_IR = train(Spektron, modalities=['IR'])
+R2_Raman = train(Spektron, modalities=['Raman'])
+R2_both = train(Spektron, modalities=['IR', 'Raman'])
 
 # Superadditivity test:
 baseline = R2_IR + R2_Raman  # Normalized to 1.0

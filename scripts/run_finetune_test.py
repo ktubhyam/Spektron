@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Run Fine-tuning Validation Test
+Spektron: Run Fine-tuning Validation Test
 
-Validates the SpectralFM training loop works end-to-end.
+Validates the Spektron training loop works end-to-end.
 Uses random initialization (no pretraining) to test the pipeline.
 
 Usage:
@@ -54,8 +54,8 @@ def load_corn_data(data_dir: str, n_transfer: int = 30, seed: int = 42):
 
 def run_spectral_fm_finetune(data: dict, n_epochs: int = 20, lr: float = 1e-3,
                               device: str = "cpu") -> dict:
-    """Run minimal SpectralFM fine-tuning test."""
-    print("\n--- Running SpectralFM Fine-tuning Test ---")
+    """Run minimal Spektron fine-tuning test."""
+    print("\n--- Running Spektron Fine-tuning Test ---")
 
     # Preprocess spectra to 2048 channels
     preprocessor = SpectralPreprocessor(target_length=2048)
@@ -199,7 +199,7 @@ def main():
         for method, m in baselines["results"].items():
             print(f"{method:<20} {m['r2']:>10.4f} {m['rmsep']:>10.4f} {m['rpd']:>8.2f}")
 
-        print(f"{'SpectralFM (no PT)':<20} {metrics['r2']:>10.4f} {metrics['rmsep']:>10.4f} {metrics['rpd']:>8.2f}")
+        print(f"{'Spektron (no PT)':<20} {metrics['r2']:>10.4f} {metrics['rmsep']:>10.4f} {metrics['rpd']:>8.2f}")
         print("-" * 70)
 
     print("\n✓ Fine-tuning test completed!")

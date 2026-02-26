@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Data Loading & Preprocessing
+Spektron: Data Loading & Preprocessing
 Handles corn, tablet datasets + wavelet decomposition + augmentation
 """
 import numpy as np

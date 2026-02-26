@@ -1,8 +1,8 @@
-# SpectralFM — Claude Code Instructions
+# Spektron — Claude Code Instructions
 
 ## What This Project Is
 
-SpectralFM is a **research paper + implementation** targeting publication at Nature Communications or JACS. The paper provides the **first formal identifiability theory for the spectral inverse problem** in vibrational spectroscopy, connecting group theory, information theory, and deep learning.
+Spektron is a **research paper + implementation** targeting publication at Nature Communications or JACS. The paper provides the **first formal identifiability theory for the spectral inverse problem** in vibrational spectroscopy, connecting group theory, information theory, and deep learning.
 
 **Paper Title:** "Can One Hear the Shape of a Molecule? Group-Theoretic Identifiability and Modal Complementarity in Vibrational Spectroscopy"
 
@@ -41,7 +41,7 @@ Spectrum (B, 2048)
 ## Project Structure
 
 ```
-SpectralFM/
+Spektron/
 ├── CLAUDE.md              ← YOU ARE HERE
 ├── PROJECT_STATUS.md      ← Current state, bugs, TODOs
 ├── IMPLEMENTATION_PLAN.md ← Detailed task list with priorities

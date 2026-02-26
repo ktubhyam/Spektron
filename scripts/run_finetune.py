@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Fine-Tuning for Calibration Transfer
+Spektron: Fine-Tuning for Calibration Transfer
 
 Loads a pretrained checkpoint, injects LoRA adapters, and fine-tunes
 on calibration transfer tasks with varying numbers of transfer samples.
 
-This is the core evaluation: SpectralFM (pretrained + LoRA) vs baselines.
+This is the core evaluation: Spektron (pretrained + LoRA) vs baselines.
 
 Usage:
     # Fine-tune on corn m5→mp6 moisture with 10 transfer samples
@@ -119,7 +119,7 @@ def finetune_spectral_fm(model, X_train, y_train, X_val=None, y_val=None,
                          n_epochs=100, lr=1e-4, head_lr=1e-3,
                          batch_size=16, patience=20, device="cpu",
                          use_lora=True):
-    """Fine-tune SpectralFM with LoRA on transfer samples.
+    """Fine-tune Spektron with LoRA on transfer samples.
 
     Args:
         model: SpectralFM with pretrained weights
@@ -243,7 +243,7 @@ def evaluate_model(model, X_test, y_test, device="cpu", mc_samples=10):
 
 def run_single_transfer(checkpoint_path, data, device, n_epochs=100,
                         lr=1e-4, use_lora=True, lora_rank=8):
-    """Run SpectralFM fine-tuning for a single transfer experiment."""
+    """Run Spektron fine-tuning for a single transfer experiment."""
     # Load pretrained model
     ckpt = torch.load(checkpoint_path, map_location=device)
     config = ckpt.get("config", SpectralFMConfig())
@@ -329,7 +329,7 @@ def run_sample_efficiency_sweep(checkpoint_path, data_loader_fn, device,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SpectralFM Fine-Tuning")
+    parser = argparse.ArgumentParser(description="Spektron Fine-Tuning")
     parser.add_argument("--checkpoint", type=str, default="checkpoints/best_pretrain.pt")
     parser.add_argument("--dataset", choices=["corn", "tablet"], default="corn")
     parser.add_argument("--source", type=str, default="m5")
@@ -403,7 +403,7 @@ def main():
 
             # Print comparison
             print(f"\nSample Efficiency: {prop}")
-            print(f"{'N':>5} {'SpectralFM R²':>15} {'DS R²':>10}")
+            print(f"{'N':>5} {'Spektron R²':>15} {'DS R²':>10}")
             print("-" * 35)
             for n, r in sorted(sweep_results.items()):
                 ds_r2 = baseline_results.get("DS", {}).get("r2", float('nan'))
@@ -423,7 +423,7 @@ def main():
                 data["X_source_test"], data["X_target_test"],
                 data["y_train"], data["y_test"],
             )
-            baseline_results["SpectralFM"] = metrics
+            baseline_results["Spektron"] = metrics
 
             all_results[prop] = baseline_results
             print_results_table(baseline_results, f"Transfer: {args.source}→{args.target} {prop}")

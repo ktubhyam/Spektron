@@ -1,5 +1,5 @@
 """
-SpectralFM: D-LinOSS Backbone
+Spektron: D-LinOSS Backbone
 
 Drop-in replacement for MambaBackbone using Damped Linear Oscillatory
 State-Space Models. The key physics insight: D-LinOSS dynamics are

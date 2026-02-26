@@ -1,5 +1,5 @@
 # P4: GPU Execution Playbook
-# SpectralFM v2 — Lambda Cloud A10 (24GB)
+# Spektron — Lambda Cloud A10 (24GB)
 # Estimated total GPU time: 4-8 hours
 # Date: 2026-02-10
 

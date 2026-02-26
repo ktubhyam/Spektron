@@ -1,4 +1,4 @@
-# SpectralFM — Implementation Plan
+# Spektron — Implementation Plan
 
 ## Task Breakdown (Ordered by Priority)
 
@@ -165,7 +165,7 @@ class DiPLS:
     """Domain-Invariant PLS (use diPLSlib if available)."""
 ```
 
-These are critical — the paper must show SpectralFM beats all classical methods.
+These are critical — the paper must show Spektron beats all classical methods.
 
 ---
 
@@ -183,9 +183,9 @@ These are critical — the paper must show SpectralFM beats all classical method
 
 **E3: Sample Efficiency Curve (KEY RESULT)**
 - N = [0 (TTT only), 5, 10, 20, 30, 50, 100] transfer samples
-- Compare: SpectralFM vs PDS vs SBC vs LoRA-CT vs Full FT
+- Compare: Spektron vs PDS vs SBC vs LoRA-CT vs Full FT
 - Plot: R² vs N for each method
-- **Must show SpectralFM@10 > LoRA-CT@50**
+- **Must show Spektron@10 > LoRA-CT@50**
 
 **E4: Full Baseline Comparison (KEY TABLE)**
 | Method | Corn (moisture) | Corn (oil) | Corn (protein) | Tablet (API) | N_transfer |
@@ -198,8 +198,8 @@ These are critical — the paper must show SpectralFM beats all classical method
 | CNN    | ?              | ?          | ?              | ?            | 30         |
 | Transformer | ?         | ?          | ?              | ?            | 30         |
 | LoRA-CT| ?              | ?          | ?              | ?            | 50         |
-| SpectralFM (ours, 10-shot) | **?** | **?** | **?** | **?** | **10** |
-| SpectralFM (ours, TTT)     | ?     | ?     | ?     | ?     | **0**  |
+| Spektron (ours, 10-shot) | **?** | **?** | **?** | **?** | **10** |
+| Spektron (ours, TTT)     | ?     | ?     | ?     | ?     | **0**  |
 
 **E5: Cross-Modality Transfer**
 - Pretrain on IR → fine-tune for NIR task
@@ -305,7 +305,7 @@ Build into HDF5 with resampling to 2048 points.
 
 ### Prompt 6: "Run pretraining"
 ```
-Pretrain SpectralFM on the corpus for 50K steps. Use all losses with 
+Pretrain Spektron on the corpus for 50K steps. Use all losses with
 configured weights. Save checkpoints every 5K steps. Log losses to 
 experiments/pretrain_log.json.
 ```

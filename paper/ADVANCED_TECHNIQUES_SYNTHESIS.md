@@ -1,11 +1,11 @@
-# SpectralFM: Advanced ML Techniques Synthesis
+# Spektron: Advanced ML Techniques Synthesis
 ## Deep Research Phase — Feb 10, 2026
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-Beyond the baseline transformer architecture, we identified **10 cutting-edge ML techniques** that can dramatically strengthen SpectralFM. These are organized into 3 tiers by impact and feasibility. The key insight: **SpectralFM should not be "just another transformer"** — it should be a physics-informed, multi-scale, operator-learning foundation model that leverages the specific structure of spectral data.
+Beyond the baseline transformer architecture, we identified **10 cutting-edge ML techniques** that can dramatically strengthen Spektron. These are organized into 3 tiers by impact and feasibility. The key insight: **Spektron should not be "just another transformer"** — it should be a physics-informed, multi-scale, operator-learning foundation model that leverages the specific structure of spectral data.
 
 ---
 
@@ -131,7 +131,7 @@ z_latent → FNO(z, Δλ, instrument_params) → Transferred spectrum
 
 **Why it matters:** Different instruments/modalities need different processing. MoE provides CONDITIONAL COMPUTATION — only relevant expert subnetworks activate per instrument type.
 
-**Key concept for SpectralFM:**
+**Key concept for Spektron:**
 - Expert per instrument type (NIR, IR, Raman)
 - Expert per spectral region (fingerprint, overtone, combination)
 - Sparse gating: only 1-2 experts active per input
@@ -157,9 +157,9 @@ Encoder → [Shared backbone] → MoE Layer (K experts, top-2 gating)
 
 ## TECHNIQUE 7: TEST-TIME TRAINING / ADAPTATION (TTT/TTA) — ★★★★☆ [NEW]
 
-**Why it matters:** When deploying SpectralFM on a NEW instrument never seen during training, TTT adapts the model AT INFERENCE using self-supervised objectives on the unlabeled test spectra. This is EXACTLY the calibration transfer scenario.
+**Why it matters:** When deploying Spektron on a NEW instrument never seen during training, TTT adapts the model AT INFERENCE using self-supervised objectives on the unlabeled test spectra. This is EXACTLY the calibration transfer scenario.
 
-**Key insight:** SpectralFM's MSRP pretraining objective can serve as the TTT auxiliary task! At test time, run a few gradient steps of MSRP on unlabeled spectra from the new instrument → model adapts to new instrument characteristics without ANY labeled transfer samples.
+**Key insight:** Spektron's MSRP pretraining objective can serve as the TTT auxiliary task! At test time, run a few gradient steps of MSRP on unlabeled spectra from the new instrument → model adapts to new instrument characteristics without ANY labeled transfer samples.
 
 **Key papers:**
 - Sun et al. 2020 (ICML): Test-Time Training with Self-Supervision
@@ -231,7 +231,7 @@ Transfer: keep z_chem, replace z_inst for target instrument
 
 ## TECHNIQUE 10: META-LEARNING (MAML) — ★★★☆☆ [NEW]
 
-**Why it matters:** MAML learns an initialization that's maximally amenable to few-shot adaptation. SpectralFM's pretraining already does something similar, but MAML formalizes it: learn initial weights such that K gradient steps on N transfer samples maximizes performance.
+**Why it matters:** MAML learns an initialization that's maximally amenable to few-shot adaptation. Spektron's pretraining already does something similar, but MAML formalizes it: learn initial weights such that K gradient steps on N transfer samples maximizes performance.
 
 **Key papers:**
 - Finn et al. 2017 (ICML): Model-Agnostic Meta-Learning
@@ -252,7 +252,7 @@ Result: θ* that can adapt to ANY new instrument pair in K steps
 
 ---
 
-## REVISED ARCHITECTURE: SpectralFM v2
+## REVISED ARCHITECTURE: Spektron v2
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -436,14 +436,14 @@ Build the system so each technique is a pluggable module. Start with simplest ve
 ## PAPER NARRATIVE (UPDATED)
 
 ### Title Option 1 (Conservative):
-"SpectralFM: A Physics-Informed Foundation Model for Few-Shot Calibration Transfer in Vibrational Spectroscopy"
+"Spektron: A Physics-Informed Foundation Model for Few-Shot Calibration Transfer in Vibrational Spectroscopy"
 
 ### Title Option 2 (Bold):
-"SpectralFM: Bridging State Space Models and Optimal Transport for Zero-to-Few-Shot Spectral Calibration Transfer"
+"Spektron: Bridging State Space Models and Optimal Transport for Zero-to-Few-Shot Spectral Calibration Transfer"
 
 ### Abstract (Draft):
 
-Calibration transfer — adapting spectroscopic models across instruments and modalities — remains a critical bottleneck in analytical chemistry. We introduce SpectralFM, the first self-supervised foundation model for vibrational spectroscopy that achieves few-shot calibration transfer by integrating: (1) a hybrid Mamba-Transformer backbone with wavelet multi-scale embedding for efficient spectral representation learning, (2) optimal transport-based domain alignment for principled instrument distribution matching, (3) physics-informed regularization embedding Beer-Lambert law and spectral constraints, and (4) test-time training for zero-shot adaptation to unseen instruments. Pretrained on 400K+ IR and Raman spectra via masked spectrum reconstruction, SpectralFM achieves state-of-the-art transfer performance on benchmark datasets (corn, tablet, Raman API) using only 10 labeled transfer samples, representing a 5× reduction over existing methods. The model produces chemically plausible predictions with formal uncertainty quantification via conformal prediction. Our work establishes foundation model pretraining as a paradigm shift for analytical chemistry instrumentation.
+Calibration transfer — adapting spectroscopic models across instruments and modalities — remains a critical bottleneck in analytical chemistry. We introduce Spektron, the first self-supervised foundation model for vibrational spectroscopy that achieves few-shot calibration transfer by integrating: (1) a hybrid Mamba-Transformer backbone with wavelet multi-scale embedding for efficient spectral representation learning, (2) optimal transport-based domain alignment for principled instrument distribution matching, (3) physics-informed regularization embedding Beer-Lambert law and spectral constraints, and (4) test-time training for zero-shot adaptation to unseen instruments. Pretrained on 400K+ IR and Raman spectra via masked spectrum reconstruction, Spektron achieves state-of-the-art transfer performance on benchmark datasets (corn, tablet, Raman API) using only 10 labeled transfer samples, representing a 5× reduction over existing methods. The model produces chemically plausible predictions with formal uncertainty quantification via conformal prediction. Our work establishes foundation model pretraining as a paradigm shift for analytical chemistry instrumentation.
 
 ### Key Innovations (Ranked):
 1. First self-supervised FM for vibrational spectroscopy
@@ -513,9 +513,9 @@ Calibration transfer — adapting spectroscopic models across instruments and mo
 |--------|---------|-----------|------------|------------|-----------|
 | PDS (baseline) | 0.91 | 0.93 | 30 | - | <1s |
 | LoRA-CT (SOTA) | 0.952 | 0.96 | 50 | 2h | <1s |
-| SpectralFM (ours, 10-shot) | 0.96+ | 0.97+ | 10 | 24h pretrain + 10min FT | <1s |
-| SpectralFM (ours, TTT) | 0.93+ | 0.94+ | 0 | 24h pretrain + 5min TTT | <1s |
-| SpectralFM (ours, 30-shot) | 0.98+ | 0.98+ | 30 | 24h pretrain + 10min FT | <1s |
+| Spektron (ours, 10-shot) | 0.96+ | 0.97+ | 10 | 24h pretrain + 10min FT | <1s |
+| Spektron (ours, TTT) | 0.93+ | 0.94+ | 0 | 24h pretrain + 5min TTT | <1s |
+| Spektron (ours, 30-shot) | 0.98+ | 0.98+ | 30 | 24h pretrain + 10min FT | <1s |
 
 ---
 

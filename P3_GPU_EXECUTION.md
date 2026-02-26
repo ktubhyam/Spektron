@@ -1,4 +1,4 @@
-# P3: GPU Execution — SpectralFM v2
+# P3: GPU Execution — Spektron
 # Instance: 4× RTX 5090 · AMD EPYC 9654 · 515GB RAM · 209GB Disk
 # IP: 211.72.13.201 · $0.117/hr
 # Model: 6.5M params · Corpus: 444MB (61,420 spectra)

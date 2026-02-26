@@ -1,4 +1,4 @@
-# SpectralFM: Expanded Brainstorm V2
+# Spektron: Expanded Brainstorm V2
 ## Integrating Workman & Mark (2017), New Innovations, Error Reduction, & Paper Architecture
 ### Feb 10, 2026
 
@@ -18,7 +18,7 @@ Workman & Mark identify four strategies that exist BEFORE modeling:
 3. **Model updating** — add samples from transfer instrument before recalibrating
 4. **Sensor selection** — find regression variables insensitive to instrument variation
 
-**Our framing:** SpectralFM is a **fifth strategy** — learn instrument-invariant chemical representations from a massive pretraining corpus, then adapt with minimal transfer data. We should explicitly position ourselves this way in the Introduction. This is a powerful rhetorical move: "After 30+ years, we propose a fifth strategy for calibration transfer."
+**Our framing:** Spektron is a **fifth strategy** — learn instrument-invariant chemical representations from a massive pretraining corpus, then adapt with minimal transfer data. We should explicitly position ourselves this way in the Introduction. This is a powerful rhetorical move: "After 30+ years, we propose a fifth strategy for calibration transfer."
 
 ## 1.2 Methods We Must Benchmark Against (from Workman 2017)
 
@@ -29,7 +29,7 @@ Workman & Mark identify four strategies that exist BEFORE modeling:
 - **Procrustes Analysis** — rotation/stretching of instrument responses
 - **MLPCA** — incorporates measurement error variance
 
-**Critical note:** FIR filtering is "standard-free" (no transfer samples on both instruments). We should include it as a baseline because it represents the aspirational endpoint — zero transfer samples. If SpectralFM with N=5 beats FIR, that's a story.
+**Critical note:** FIR filtering is "standard-free" (no transfer samples on both instruments). We should include it as a baseline because it represents the aspirational endpoint — zero transfer samples. If Spektron with N=5 beats FIR, that's a story.
 
 ## 1.3 The "Master Instrument" Problem
 
@@ -60,7 +60,7 @@ The True Alignment Spectroscopy concept (aligning to physics rather than to a ma
 **The idea:** Instead of randomly selecting which samples to measure on the new instrument, use the pretrained model's uncertainty to SELECT the most informative samples.
 
 **Implementation:**
-1. Run all calibration spectra through SpectralFM encoder
+1. Run all calibration spectra through Spektron encoder
 2. Compute latent space diversity (k-medoids clustering)
 3. Select N samples that maximize coverage of the latent space
 4. Optionally: select samples where model uncertainty is highest (epistemic uncertainty from MC dropout)
@@ -148,7 +148,7 @@ L_pretrain = α·L_MSRP + β·L_contrastive + γ·L_denoise
 ## 2.6 Failure Mode Analysis & Limits of Applicability (CRITICAL FOR HONESTY)
 
 **We must include:**
-- When does SpectralFM fail? (e.g., when instrument differences are too extreme? When spectra are outside pretraining distribution?)
+- When does Spektron fail? (e.g., when instrument differences are too extreme? When spectra are outside pretraining distribution?)
 - Plot: performance vs. instrument dissimilarity (e.g., same model × different resolution × different manufacturer)
 - Applicability domain: use Mahalanobis distance in latent space to flag "out-of-distribution" transfer requests
 - Honest comparison: at N=100 transfer samples, does PDS actually catch up? (Probably yes — our advantage is at low N)
@@ -164,7 +164,7 @@ L_pretrain = α·L_MSRP + β·L_contrastive + γ·L_denoise
 | PDS    | 50              | $5,000-10,000   | 1 min       | ~$10K      | X     |
 | di-PLS | 30              | $3,000-6,000    | 5 min       | ~$6K       | Y     |
 | LoRA-CT| 20              | $2,000-4,000    | 30 min      | ~$4K       | Z     |
-| SpectralFM | 10          | $1,000-2,000    | 10 min      | ~$2K       | W     |
+| Spektron | 10          | $1,000-2,000    | 10 min      | ~$2K       | W     |
 
 Assumptions: $50-200 per reference analysis depending on analyte complexity.
 
@@ -207,7 +207,7 @@ This broadens the paper's impact from "cross-instrument" to "general robustness 
 ## 3.1 Ensemble Strategies
 
 ### Model Ensemble
-- Train 3-5 SpectralFM models with different random seeds
+- Train 3-5 Spektron models with different random seeds
 - Average predictions (reduces variance)
 - Report ensemble improvement over single model
 
@@ -227,7 +227,7 @@ This broadens the paper's impact from "cross-instrument" to "general robustness 
 - **SNV/MSC** — scatter correction, reduces particle size effects
 - **OSC** — remove Y-orthogonal variation (Workman's Section 5)
 
-**Our approach:** Test whether SpectralFM works better with raw spectra or preprocessed. The hypothesis: pretraining on raw spectra lets the model learn its own optimal "preprocessing" in the early transformer layers. But for fairness, test both.
+**Our approach:** Test whether Spektron works better with raw spectra or preprocessed. The hypothesis: pretraining on raw spectra lets the model learn its own optimal "preprocessing" in the early transformer layers. But for fairness, test both.
 
 **Ablation:**
 | Input Type | Pretraining | Fine-tuning | RMSEP |
@@ -388,7 +388,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 # ═══════════════════════════════════════════════════
 
 ## Title:
-**"SpectralFM: A Self-Supervised Foundation Model for Few-Shot Calibration Transfer in Vibrational Spectroscopy"**
+**"Spektron: A Self-Supervised Foundation Model for Few-Shot Calibration Transfer in Vibrational Spectroscopy"**
 
 ### Abstract (~250 words)
 
@@ -414,7 +414,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
   - No foundation model exists for vibrational spectroscopy calibration transfer
   
   1.4. Our Contributions
-  - SpectralFM: first self-supervised foundation model for vibrational spectroscopy CT
+  - Spektron: first self-supervised foundation model for vibrational spectroscopy CT
   - Multi-objective pretraining: masked prediction + contrastive invariance + denoising
   - Physics-informed design: wavenumber positional encoding, derivative-aware loss
   - 10 transfer samples match classical methods requiring 50+
@@ -425,7 +425,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 
 **2. THEORY AND METHODS** (~3000 words, ~3 pages)
 
-  2.1. SpectralFM Architecture
+  2.1. Spektron Architecture
   - Figure 1: Complete architectural overview (TOC graphic candidate)
   
   2.2. Spectral Patch Embedding and Positional Encoding
@@ -507,7 +507,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 
   4.2. Sample Efficiency: The Core Result ★
   - Performance vs. N transfer samples (N=5,10,20,30,50,100)
-  - SpectralFM at N=10 matches PDS at N=50 [TARGET CLAIM]
+  - Spektron at N=10 matches PDS at N=50 [TARGET CLAIM]
   - Statistical significance via bootstrap confidence intervals
   - Active vs. random sample selection
   - **Figure 3: Sample efficiency curves — THE money figure**
@@ -546,14 +546,14 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
   - Table 5: Comprehensive ablation summary
 
   4.8. Failure Analysis and Limitations
-  - Where does SpectralFM underperform classical methods?
+  - Where does Spektron underperform classical methods?
   - Performance vs. instrument dissimilarity
   - Applicability domain boundaries
   - Computational overhead comparison
 
   4.9. Cost-Benefit Analysis
   - Table 6: Total cost per transfer (samples + compute + time)
-  - Break-even analysis: when is SpectralFM economically justified?
+  - Break-even analysis: when is Spektron economically justified?
 
 ---
 
@@ -587,7 +587,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 
 **TOC GRAPHIC** (8.25 cm × 4.45 cm)
   Left panel: Multiple NIR instruments + raw spectra (showing differences)
-  Center: SpectralFM transformer (abstract neural architecture)
+  Center: Spektron transformer (abstract neural architecture)
   Right panel: Unified prediction with confidence band
   Bottom callout: "10 samples → R² > 0.96"
 
@@ -613,9 +613,9 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 ## Figure 3: Sample Efficiency ★ THE MONEY FIGURE (Half page)
 - X-axis: Number of transfer samples (5, 10, 20, 30, 50, 100)
 - Y-axis: RMSEP (lower is better)
-- Lines: SpectralFM, PDS, DS, di-PLS, LoRA-CT, CNN
+- Lines: Spektron, PDS, DS, di-PLS, LoRA-CT, CNN
 - Shaded regions: 95% confidence intervals
-- Annotation: "SpectralFM @N=10 ≈ PDS @N=50"
+- Annotation: "Spektron @N=10 ≈ PDS @N=50"
 - This single figure tells the entire story
 
 ## Figure 4: Full Benchmark Comparison (Half page)
@@ -655,7 +655,7 @@ OUTPUT: Transferred spectrum + prediction + confidence interval
 - Hypothesis: active selection at N=10 ≈ random at N=25
 
 ## E8: Preprocessing Ablation
-- Test SpectralFM with raw, SG1D, SNV, OSC preprocessed inputs
+- Test Spektron with raw, SG1D, SNV, OSC preprocessed inputs
 - Does the model learn "internal preprocessing" during pretraining?
 
 ## E9: Transfer Head Architecture Ablation

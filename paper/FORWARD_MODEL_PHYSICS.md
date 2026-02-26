@@ -1,7 +1,7 @@
 # Forward Model Physics: Molecular Structure → Vibrational Spectrum
-## Comprehensive Technical Reference for SpectralFM
+## Comprehensive Technical Reference for Spektron
 
-**Author:** Research compiled for SpectralFM project
+**Author:** Research compiled for Spektron project
 **Date:** 2026-02-10
 **Purpose:** Establish rigorous physics foundation for the forward model from molecular structure to vibrational spectra
 
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document provides an exhaustive review of the quantum chemistry, computational methods, and physical principles underlying the forward map from molecular structure to vibrational spectra. This foundation is critical for SpectralFM's inverse problem (spectrum → structure/properties) and for understanding the information content, conditioning, and limitations of spectroscopic data.
+This document provides an exhaustive review of the quantum chemistry, computational methods, and physical principles underlying the forward map from molecular structure to vibrational spectra. This foundation is critical for Spektron's inverse problem (spectrum → structure/properties) and for understanding the information content, conditioning, and limitations of spectroscopic data.
 
 **Key Findings:**
 - The Born-Oppenheimer approximation is valid for most vibrational spectroscopy but breaks down near conical intersections
@@ -49,8 +49,8 @@ The BO approximation breaks down when:
 3. **Proton transfer systems:** Light hydrogen atoms violate the large mass ratio assumption
 4. **Avoided crossings:** Electronic states with similar energies but different symmetries
 
-**Implications for SpectralFM:**
-For ground-state vibrational spectroscopy of closed-shell organic molecules (the primary domain of SpectralFM), the BO approximation is highly accurate. Breakdown is rare and primarily affects:
+**Implications for Spektron:**
+For ground-state vibrational spectroscopy of closed-shell organic molecules (the primary domain of Spektron), the BO approximation is highly accurate. Breakdown is rare and primarily affects:
 - Excited electronic states (not relevant for IR/Raman of ground-state molecules)
 - Systems with nearly degenerate electronic states
 - Very high-energy vibrational overtones approaching electronic transitions
@@ -470,7 +470,7 @@ Different vibrational regions may require different scaling factors:
 - **Condensed-phase spectra:** Require explicit or implicit solvent models; errors increase to 20-50 cm⁻¹
 - **Crystalline solids:** Periodic DFT with PBE/plane waves; errors 10-30 cm⁻¹ for phonons
 
-**Key Takeaway for SpectralFM:**
+**Key Takeaway for Spektron:**
 DFT is sufficiently accurate to generate synthetic training data for ML models, but:
 1. Cannot replace high-resolution experimental spectroscopy (1 cm⁻¹ accuracy)
 2. Systematic errors (e.g., hydrogen bonding) must be corrected or learned by ML model
@@ -504,13 +504,13 @@ DFT is sufficiently accurate to generate synthetic training data for ML models, 
 - **Standardization:** Enables fair comparison across molecules
 - **Transferability:** Functional and basis set are well-calibrated for diverse chemical space
 
-**Usage for SpectralFM:**
+**Usage for Spektron:**
 - QM9S provides large-scale training data for structure → spectrum forward models
 - Includes Hessian matrices: can extract force constants, normal modes, curvature information
 - Spectral data: Can train ML models to predict IR/Raman intensities
 - **Limitation:** All gas-phase calculations; no solvation, crystal packing, or temperature effects
 
-**Extensions Needed for SpectralFM:**
+**Extensions Needed for Spektron:**
 1. **Solvation models:** Implicit (PCM, SMD) or explicit (MD with solvent molecules)
 2. **Temperature effects:** Thermal averaging over conformers and vibrational populations
 3. **Anharmonic corrections:** VPT2 or ML-based anharmonicity prediction
@@ -684,7 +684,7 @@ where:
 - **Limit:** When FWHM exceeds mode spacing, individual peaks become unresolvable
 - **Spectral congestion:** Major challenge for large molecules (many overlapping modes in 1000-1500 cm⁻¹ "fingerprint region")
 
-**Implications for SpectralFM:**
+**Implications for Spektron:**
 1. Peak positions carry most structural information
 2. Intensities have high uncertainty; less reliable for inverse problems
 3. Broadening is environment-dependent; must model or learn from data
@@ -797,7 +797,7 @@ E_± = (E₁ + E₂)/2 ± √[(E₁ - E₂)²/4 + W²]
 - Anharmonic VPT2: Can predict resonances if cubic/quartic force constants are included
 - **Challenge:** Identifying resonances requires comparing harmonic and anharmonic spectra
 
-**Implications for SpectralFM:**
+**Implications for Spektron:**
 - Fermi resonances cause "extra peaks" not predicted by harmonic theory
 - Can complicate spectral assignment (is a peak a fundamental or a dressed overtone?)
 - ML models trained on experimental data implicitly learn resonances
@@ -948,7 +948,7 @@ E_± = (E₁ + E₂)/2 ± √[(E₁ - E₂)²/4 + W²]
   - Highly charged species
   - Metals and unusual oxidation states
 
-**Use for SpectralFM:**
+**Use for Spektron:**
 - Can generate synthetic spectra for millions of molecules at low cost
 - Enables conformer averaging (compute 100 conformers in time of 1 DFT calc)
 - **Caution:** Inherit DFT errors from training data; not more accurate than DFT
@@ -995,7 +995,7 @@ E_± = (E₁ + E₂)/2 ± √[(E₁ - E₂)²/4 + W²]
 - Computational cost higher than simpler models (GNNs, SchNet) but still &lt;&lt; DFT
 - Primarily validated for small molecules and materials; less tested on large biomolecules
 
-**Use for SpectralFM:**
+**Use for Spektron:**
 - **High-accuracy spectral prediction:** MACE achieves near-DFT accuracy at 100-1000× speedup
 - **Conformer averaging:** Can sample conformational space efficiently
 - **Environment effects:** Explicit solvent MD simulations feasible
@@ -1035,7 +1035,7 @@ E_± = (E₁ + E₂)/2 ± √[(E₁ - E₂)²/4 + W²]
 - **Charged species:** Less validated for ions and radicals
 - **Transition states:** Not explicitly trained on; may be less reliable
 
-**Use for SpectralFM:**
+**Use for Spektron:**
 - **Fast conformer sampling:** Generate Boltzmann-weighted ensemble at MD cost
 - **Anharmonic corrections:** Use ANI for VPT2 force constant calculations
 - **Pretraining data augmentation:** Generate millions of spectra for diverse conformers
@@ -1087,7 +1087,7 @@ E_± = (E₁ + E₂)/2 ± √[(E₁ - E₂)²/4 + W²]
 - Always validate on held-out DFT test set
 - Report both DFT and ML predictions for key systems
 
-**Recommendation for SpectralFM:**
+**Recommendation for Spektron:**
 - **Phase 1 (prototyping):** Use DFT (B3LYP/def2-TZVP) for small, curated dataset
 - **Phase 2 (scaling):** Train MACE on DFT data, use for large-scale data generation
 - **Phase 3 (production):** Hybrid pipeline: ML for conformer sampling, DFT for validation
@@ -1252,7 +1252,7 @@ where:
 - `R_j`: j-th atomic coordinate
 
 **Dimensions:**
-- **Spectrum:** Discretized at N_freq points (e.g., 2048 for SpectralFM)
+- **Spectrum:** Discretized at N_freq points (e.g., 2048 for Spektron)
 - **Geometry:** 3N_atoms coordinates (e.g., 300 for 100-atom molecule)
 - **Jacobian:** N_freq × 3N_atoms (e.g., 2048 × 300 matrix)
 
@@ -1392,7 +1392,7 @@ Sample posterior with MCMC or variational inference.
 **5. Machine Learning:**
 - Train neural network to learn inverse map (spectrum → structure)
 - Implicit regularization from training on chemically plausible structures
-- **SpectralFM approach:** Use foundation model to learn regularized inverse
+- **Spektron approach:** Use foundation model to learn regularized inverse
 
 ---
 
@@ -1610,7 +1610,7 @@ S_avg(ω) = Σ_i w_i · S_i(ω)
 
 ---
 
-### 7.5 Implications for SpectralFM
+### 7.5 Implications for Spektron
 
 **Training Data:**
 - **Include conformer diversity:** Don't train only on global minimum
@@ -1640,13 +1640,13 @@ S_avg(ω) = Σ_i w_i · S_i(ω)
 
 ---
 
-## 8. Summary and Recommendations for SpectralFM
+## 8. Summary and Recommendations for Spektron
 
 ### 8.1 Key Physics Takeaways
 
 **1. Born-Oppenheimer Approximation:**
 - **Valid for ground-state vibrational spectroscopy** of closed-shell organic molecules
-- Errors &lt; 0.1 cm⁻¹, negligible for SpectralFM
+- Errors &lt; 0.1 cm⁻¹, negligible for Spektron
 - **Breakdown rare:** Only near conical intersections (excited states, proton transfer)
 
 **2. Harmonic vs. Anharmonic:**
@@ -1681,7 +1681,7 @@ S_avg(ω) = Σ_i w_i · S_i(ω)
 
 ---
 
-### 8.2 Computational Protocol for SpectralFM Training Data
+### 8.2 Computational Protocol for Spektron Training Data
 
 **Phase 1: Prototype (Small, High-Quality Dataset)**
 
@@ -1745,7 +1745,7 @@ S_avg(ω) = Σ_i w_i · S_i(ω)
 ### 8.3 Open Questions and Future Work
 
 **1. Anharmonicity:**
-- Can SpectralFM learn to correct harmonic DFT errors?
+- Can Spektron learn to correct harmonic DFT errors?
 - Should we incorporate anharmonic training data (VPT2)?
 - **Test:** Compare model trained on harmonic vs. anharmonic spectra
 

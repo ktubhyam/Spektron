@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Run Classical Baselines + SpectralFM Fine-tuning Test
+Spektron: Run Classical Baselines + Spektron Fine-tuning Test
 
 Tasks:
-1. Run PLS, PDS, SBC, DS on corn m5→mp6 transfer (moisture)
-2. Run minimal SpectralFM fine-tuning (random init, no pretrain)
+1. Run PLS, PDS, SBC, DS on corn m5->mp6 transfer (moisture)
+2. Run minimal Spektron fine-tuning (random init, no pretrain)
 3. Save results and print comparison table
 
 Usage:
@@ -76,11 +76,11 @@ def load_corn_data(data_dir: str, n_transfer: int = 30, seed: int = 42):
 
 def run_spectral_fm_finetune(data: dict, n_epochs: int = 30, lr: float = 1e-3,
                               device: str = "cpu") -> dict:
-    """Run minimal SpectralFM fine-tuning test (random init, no pretrain).
+    """Run minimal Spektron fine-tuning test (random init, no pretrain).
 
     This validates the training loop works end-to-end.
     """
-    print("\n--- Running SpectralFM Fine-tuning Test ---")
+    print("\n--- Running Spektron Fine-tuning Test ---")
 
     # Preprocess spectra to 2048 channels
     preprocessor = SpectralPreprocessor(target_length=2048)
@@ -216,7 +216,7 @@ def main():
         json.dump(baseline_output, f, indent=2)
     print(f"\nBaseline results saved to experiments/baselines_corn.json")
 
-    # Run SpectralFM fine-tuning test
+    # Run Spektron fine-tuning test
     spectral_fm_metrics = run_spectral_fm_finetune(data, n_epochs=30, device=device)
 
     # Save fine-tuning results
@@ -245,7 +245,7 @@ def main():
     for method, metrics in baseline_results.items():
         print(f"{method:<20} {metrics['r2']:>10.4f} {metrics['rmsep']:>10.4f} {metrics['rpd']:>8.2f}")
 
-    print(f"{'SpectralFM (no PT)':<20} {spectral_fm_metrics['r2']:>10.4f} "
+    print(f"{'Spektron (no PT)':<20} {spectral_fm_metrics['r2']:>10.4f} "
           f"{spectral_fm_metrics['rmsep']:>10.4f} {spectral_fm_metrics['rpd']:>8.2f}")
     print("-" * 70)
 

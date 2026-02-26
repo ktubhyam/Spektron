@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Training Loops
+Spektron: Training Loops
 
 1. Pretraining: MSRP + Contrastive + Physics + OT + VIB
 2. Fine-tuning: LoRA-based calibration transfer
@@ -41,7 +41,7 @@ def _config_to_dict(config) -> dict:
 
 
 class PretrainTrainer:
-    """Pretraining loop for SpectralFM."""
+    """Pretraining loop for Spektron."""
 
     def __init__(self, model: SpectralFMForPretraining,
                  config: SpectralFMConfig,
@@ -123,7 +123,7 @@ class PretrainTrainer:
 
         # Experiment logger (W&B + JSON dual backend)
         self.exp_logger = ExperimentLogger(
-            project="SpectralFM",
+            project="Spektron",
             run_name=run_name or f"pretrain_{int(time.time())}",
             config=_config_to_dict(config),
             log_dir=config.log_dir,
@@ -399,7 +399,7 @@ class FinetuneTrainer:
 
         # Experiment logger
         self.exp_logger = ExperimentLogger(
-            project="SpectralFM",
+            project="Spektron",
             run_name=run_name or f"finetune_{int(time.time())}",
             config=_config_to_dict(config),
             log_dir=config.log_dir,

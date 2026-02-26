@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Run Classical Baselines Only (Fast)
+Spektron: Run Classical Baselines Only (Fast)
 
 Tasks:
 1. Run PLS, PDS, SBC, DS on corn m5→mp6 transfer (moisture)

@@ -1,5 +1,5 @@
 """
-SpectralFM experiment logging.
+Spektron experiment logging.
 Dual backend: Weights & Biases (primary) + local JSONL (fallback).
 """
 import json
@@ -18,9 +18,9 @@ except ImportError:
 
 
 class ExperimentLogger:
-    """Dual W&B + JSON logger for SpectralFM experiments."""
+    """Dual W&B + JSON logger for Spektron experiments."""
 
-    def __init__(self, project: str = "SpectralFM",
+    def __init__(self, project: str = "Spektron",
                  run_name: Optional[str] = None,
                  config: Optional[dict] = None,
                  log_dir: str = "logs",

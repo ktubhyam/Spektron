@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Build Pretraining Corpus
+Spektron: Build Pretraining Corpus
 
 Main script to download, process, and build the HDF5 pretraining corpus.
 
@@ -18,7 +18,7 @@ from src.data.pretraining_pipeline import PretrainingCorpusBuilder
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build SpectralFM pretraining corpus")
+    parser = argparse.ArgumentParser(description="Build Spektron pretraining corpus")
     parser.add_argument('--target-size', type=int, default=200000,
                         help='Target number of spectra (default: 200000)')
     parser.add_argument('--output', type=str, default=None,

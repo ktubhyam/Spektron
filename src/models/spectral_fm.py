@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Full Model Assembly
+Spektron: Full Model Assembly
 
 Supports two backbone modes:
 1. Mamba backbone (original): Wavelet embed → Mamba(×4) → MoE → Transformer(×2) → VIB
@@ -23,7 +23,7 @@ from .heads import VIBHead, ReconstructionHead, RegressionHead, FNOTransferHead
 
 
 class SpectralFM(nn.Module):
-    """SpectralFM v2: Physics-Informed State Space Foundation Model.
+    """Spektron: Physics-Informed State Space Foundation Model.
 
     Supports both Mamba and D-LinOSS backbones via config.backbone.
     """
@@ -141,7 +141,7 @@ class SpectralFM(nn.Module):
         total = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
         backbone_name = self.config.backbone.upper()
-        print(f"SpectralFM [{backbone_name}]: {total:,} total params, {trainable:,} trainable")
+        print(f"Spektron [{backbone_name}]: {total:,} total params, {trainable:,} trainable")
 
     def encode(self, spectrum: torch.Tensor,
                domain=None,

@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Transformer Blocks
+Spektron: Transformer Blocks
 
 Lightweight transformer for global reasoning after Mamba feature extraction.
 Includes cross-attention for instrument-specific conditioning.

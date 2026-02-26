@@ -1,5 +1,5 @@
 """
-QM9S Dataset Loader for SpectralFM.
+QM9S Dataset Loader for Spektron.
 
 QM9S: ~130K molecules with DFT-computed IR, Raman, and UV-Vis spectra.
 Source: Figshare (DOI: 10.6084/m9.figshare.24235333.v3)

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document provides a complete methodology for experimentally validating the three main information-theoretic theorems in SpectralFM. It synthesizes state-of-the-art methods from 2023-2025 research for measuring abstract information-theoretic quantities (mutual information, Wasserstein distance, KL divergence, PID) from finite samples, with specific protocols, software recommendations, and validation procedures.
+This document provides a complete methodology for experimentally validating the three main information-theoretic theorems in Spektron. It synthesizes state-of-the-art methods from 2023-2025 research for measuring abstract information-theoretic quantities (mutual information, Wasserstein distance, KL divergence, PID) from finite samples, with specific protocols, software recommendations, and validation procedures.
 
 ---
 
@@ -153,7 +153,7 @@ mi = gcmi_ccc(x, y, z)
 
 **Solution:** Dimensionality reduction before estimation (see Section 7)
 
-### 2.3 Recommended Protocol for SpectralFM
+### 2.3 Recommended Protocol for Spektron
 
 **For z_chem (D=128, N~5000):**
 
@@ -374,7 +374,7 @@ Y = X1  # X2 is irrelevant
 
 **Empirical finding (from neuroscience):** N ≈ 1000-5000 for D=10
 
-**For SpectralFM:** With N ≈ 1000-10000 molecules, reduce to D=10-20 before PID estimation
+**For Spektron:** With N ≈ 1000-10000 molecules, reduce to D=10-20 before PID estimation
 
 ---
 
@@ -513,7 +513,7 @@ W2 = bures_wasserstein_distance(mu1, Sigma1, mu2, Sigma2)
 - Empirical OT: N = O(D/ε²)
 - Sliced Wasserstein: N = O(1/ε²) (dimension-free!)
 
-**For SpectralFM:** With D=128, N=1000-5000:
+**For Spektron:** With D=128, N=1000-5000:
 - Use Sliced Wasserstein or Gaussian assumption
 - If using Sinkhorn, reduce dimensionality first
 
@@ -848,7 +848,7 @@ print(f"Point group order effect (controlled): {point_group_effect:.3f}")
 
 **Rule of thumb:** Reduce to D such that D ≤ N / 10
 
-**For SpectralFM:** N=1000-10000 → use D=10-20
+**For Spektron:** N=1000-10000 → use D=10-20
 
 ### 7.2 Information Preservation
 
@@ -894,7 +894,7 @@ print(f"Variance explained: {var_explained:.1%}")
 
 **Information Bottleneck reference:** [Data Efficiency, Dimensionality Reduction, and the Generalized Symmetric Information Bottleneck](https://direct.mit.edu/neco/article-abstract/36/7/1353/120664/) (Neural Computation 2024)
 
-**Recommendation for SpectralFM:**
+**Recommendation for Spektron:**
 1. Start with PCA (fast, interpretable)
 2. Validate with UMAP (check if nonlinear structure matters)
 3. Use Information Bottleneck if MI preservation is critical

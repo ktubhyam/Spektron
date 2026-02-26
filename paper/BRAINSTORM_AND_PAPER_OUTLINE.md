@@ -1,4 +1,4 @@
-# SpectralFM: Deep Brainstorming & Paper Outline
+# Spektron: Deep Brainstorming & Paper Outline
 ## Session: Feb 10, 2026
 
 ---
@@ -217,7 +217,7 @@ Table comparing:
 - PDS: seconds, instant, baseline
 - di-PLS: minutes, instant, good
 - LoRA-CT: hours, milliseconds, better
-- SpectralFM: hours (pretrain once) + minutes (fine-tune), milliseconds, best
+- Spektron: hours (pretrain once) + minutes (fine-tune), milliseconds, best
 
 **Key argument:** Pretraining is a ONE-TIME cost. Fine-tuning is cheap.
 
@@ -254,7 +254,7 @@ Table: Cost of calibration transfer
 | Approach | Samples Needed | Analyst Time | Equipment Time | Total Cost |
 | Manual recalibration | 200+ | 40 hours | 40 hours | $5,000-20,000 |
 | PDS | 30-50 | 10 hours | 10 hours | $1,500-5,000 |
-| SpectralFM | 10-20 | 2 hours | 2 hours | $300-1,000 |
+| Spektron | 10-20 | 2 hours | 2 hours | $300-1,000 |
 
 This is the slide that gets executives to care.
 
@@ -304,10 +304,10 @@ Tubhyam Karthikeyan¹*
 - 1.4 The Foundation Model Opportunity
   - No foundation model exists for vibrational spectroscopy calibration transfer
   - Why self-supervised pretraining should help: learning chemical representations from unlabeled spectra
-  - Our contribution: SpectralFM — the fifth strategy
+  - Our contribution: Spektron — the fifth strategy
 
 **2. METHODS**
-- 2.1 SpectralFM Architecture Overview
+- 2.1 Spektron Architecture Overview
   - Figure 1: Full architectural schematic (this becomes the TOC graphic)
 - 2.2 Spectral Preprocessing and Patch Embedding
   - Resampling to unified resolution
@@ -353,7 +353,7 @@ Tubhyam Karthikeyan¹*
   - Figure 2: Pretraining loss curves and ablation bar chart
 - 3.2 Sample Efficiency: The Core Result
   - THE critical experiment: performance vs. N transfer samples
-  - Show SpectralFM at N=10 matches PDS at N=50
+  - Show Spektron at N=10 matches PDS at N=50
   - Statistical significance (bootstrap confidence intervals)
   - Figure 3: Sample efficiency curve (THE money figure)
 - 3.3 Comprehensive Benchmark Comparison
@@ -408,7 +408,7 @@ Tubhyam Karthikeyan¹*
 
 **TOC GRAPHIC** (8.25 × 4.45 cm)
 - Left: Multiple instrument icons → spectral data flowing in
-- Center: SpectralFM transformer (abstract visualization)
+- Center: Spektron transformer (abstract visualization)
 - Right: Unified calibration output with accuracy metrics
 - Bottom: "10 samples → matched accuracy" callout
 

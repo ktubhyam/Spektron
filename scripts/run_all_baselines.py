@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Comprehensive Baseline Runner
+Spektron: Comprehensive Baseline Runner
 
 Runs ALL classical baselines across:
 - Corn: 4 properties × 3 instrument pairs × {PLS, PDS, SBC, DS, CCA, di-PLS}

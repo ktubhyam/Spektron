@@ -1,7 +1,7 @@
-# Machine Learning + Theory Paper Structure: Research Guide for SpectralFM
+# Machine Learning + Theory Paper Structure: Research Guide for Spektron
 
 **Date:** 2026-02-10
-**Purpose:** Guide the structure and writing of the SpectralFM paper for publication in analytical chemistry/ML venues
+**Purpose:** Guide the structure and writing of the Spektron paper for publication in analytical chemistry/ML venues
 
 ---
 
@@ -31,7 +31,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
   - Provides general-enough framework to unify many ML phenomena
   - Theoretical framework with broad applications
 
-**Relevance to SpectralFM:** Your VIB disentanglement (z_chem vs z_inst) fits perfectly into information-theoretic analysis. You can cite this framework for theoretical justification.
+**Relevance to Spektron:** Your VIB disentanglement (z_chem vs z_inst) fits perfectly into information-theoretic analysis. You can cite this framework for theoretical justification.
 
 ---
 
@@ -48,7 +48,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
 
 **Key Finding:** Models trained with VIB objective outperform other regularization methods in generalization and adversarial robustness.
 
-**Relevance to SpectralFM:** Direct precedent for your VIB head. This structure shows how to present information-theoretic methods: theory → implementation → empirical validation.
+**Relevance to Spektron:** Direct precedent for your VIB head. This structure shows how to present information-theoretic methods: theory → implementation → empirical validation.
 
 ---
 
@@ -65,7 +65,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
   - **Section 6:** Experiments
   - **Appendix:** Full proofs
 
-**Relevance to SpectralFM:** Your Sinkhorn-based Wasserstein alignment for cross-instrument calibration fits here. Shows how to structure OT theory papers.
+**Relevance to Spektron:** Your Sinkhorn-based Wasserstein alignment for cross-instrument calibration fits here. Shows how to structure OT theory papers.
 
 ---
 
@@ -100,7 +100,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
 - Mamba-1-Attention works better than Mamba-2-Attention in hybrid architecture
 - Layer interleaving pattern matters (final stages benefit most from self-attention)
 
-**Relevance to SpectralFM:** Direct precedent for your Mamba-Transformer hybrid. Shows importance of extensive ablation studies.
+**Relevance to Spektron:** Direct precedent for your Mamba-Transformer hybrid. Shows importance of extensive ablation studies.
 
 ---
 
@@ -111,7 +111,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
   - Found that self-attention blocks at final stages enhance global context
   - Comprehensive ablations on layer placement
 
-**Relevance to SpectralFM:** Shows how to justify hybrid design choices through systematic ablations.
+**Relevance to Spektron:** Shows how to justify hybrid design choices through systematic ablations.
 
 ---
 
@@ -124,7 +124,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
   - Emerging trends and challenges
   - Applications: molecular property prediction, materials discovery, structure-property relationships
 
-**Relevance to SpectralFM:** Positions your work as "first self-supervised foundation model for vibrational spectroscopy" - fits current foundation model trend.
+**Relevance to Spektron:** Positions your work as "first self-supervised foundation model for vibrational spectroscopy" - fits current foundation model trend.
 
 ---
 
@@ -137,7 +137,7 @@ Based on analysis of successful ML theory papers from NeurIPS, ICML, JMLR, and N
   - **Results:** 600× reduction in trainable parameters, superior transfer with minimal samples
   - **Benchmark:** Corn dataset (must beat R² = 0.952 on moisture)
 
-**Relevance to SpectralFM:** THIS IS YOUR MAIN BASELINE. You must compare against LoRA-CT directly.
+**Relevance to Spektron:** THIS IS YOUR MAIN BASELINE. You must compare against LoRA-CT directly.
 
 ---
 
@@ -225,7 +225,7 @@ Based on exemplar analysis, here's the recommended structure for a **~12 page pa
 - Gap: "These methods require substantial labeled transfer data and lack theoretical guarantees"
 
 **Paragraph 3: Our Approach (5-6 sentences)**
-- "We introduce SpectralFM, the first self-supervised foundation model for vibrational spectroscopy"
+- "We introduce Spektron, the first self-supervised foundation model for vibrational spectroscopy"
 - Hybrid Mamba-Transformer architecture (O(n) efficiency + global reasoning)
 - Variational information bottleneck disentangles chemistry from instrument
 - Optimal transport aligns latent distributions
@@ -358,7 +358,7 @@ Based on exemplar analysis, here's the recommended structure for a **~12 page pa
 
 **3.5.4 Main Results (0.75 pages)**
 - **Table 1:** Few-shot calibration transfer (1, 3, 5, 10 samples)
-  - Corn moisture: SpectralFM R² = X.XXX vs LoRA-CT R² = 0.952
+  - Corn moisture: Spektron R² = X.XXX vs LoRA-CT R² = 0.952
   - All 4 properties, all instrument pairs
 - **Table 2:** Zero-shot via TTT
   - First demonstration of zero-shot spectral calibration transfer
@@ -412,7 +412,7 @@ Based on exemplar analysis, here's the recommended structure for a **~12 page pa
 ### 3.7 Conclusion (0.25 pages)
 
 - Restate contributions (3-4 sentences)
-- Impact: "SpectralFM democratizes advanced spectroscopy by enabling low-cost instrument adoption"
+- Impact: "Spektron democratizes advanced spectroscopy by enabling low-cost instrument adoption"
 - Call to action: "Code and weights available at github.com/..."
 
 ---
@@ -474,7 +474,7 @@ When deferring to appendix, provide 3-4 sentence sketch:
    - Code availability (GitHub)
    - Pretrained weights (if possible)
 
-### 5.2 Recommended Experiment Count for SpectralFM
+### 5.2 Recommended Experiment Count for Spektron
 
 **Main Results:**
 - 2 datasets × 6 instrument pairs × 4 shot settings (0, 1, 3, 10) × 5 seeds = **240 runs**
@@ -630,7 +630,7 @@ When deferring to appendix, provide 3-4 sentence sketch:
 > "While recent deep learning methods like LoRA-CT have improved sample efficiency, they still require 10-50 labeled transfer samples and lack theoretical guarantees. Zero-shot calibration transfer remains an open challenge."
 
 **Pattern 3: Our Solution**
-> "We introduce SpectralFM, the first self-supervised foundation model for vibrational spectroscopy that achieves near-zero-shot calibration transfer through a novel combination of selective state space models, information bottleneck disentanglement, and optimal transport alignment."
+> "We introduce Spektron, the first self-supervised foundation model for vibrational spectroscopy that achieves near-zero-shot calibration transfer through a novel combination of selective state space models, information bottleneck disentanglement, and optimal transport alignment."
 
 ---
 
@@ -672,7 +672,7 @@ first argument for some L < ∞.
 
 **Figure 2: Main Results**
 - Learning curves: x-axis = number of transfer samples, y-axis = R²
-- Multiple lines: SpectralFM, LoRA-CT, baselines
+- Multiple lines: Spektron, LoRA-CT, baselines
 - Shade = std dev over 5 seeds
 - Horizontal line = zero-shot (TTT) performance
 
@@ -692,7 +692,7 @@ first argument for some L < ∞.
 |--------------|---------------|---------------|--------------|--------|
 | PDS          | 0.812 ± 0.023 | 0.798 ± 0.031 | 0.845 ± 0.018| 0.818  |
 | LoRA-CT      | 0.952 ± 0.012 | 0.941 ± 0.015 | 0.967 ± 0.009| 0.953  |
-| SpectralFM   | **0.978 ± 0.008** | **0.971 ± 0.011** | **0.984 ± 0.006** | **0.978** |
+| Spektron   | **0.978 ± 0.008** | **0.971 ± 0.011** | **0.984 ± 0.006** | **0.978** |
 ```
 
 ---
@@ -700,10 +700,10 @@ first argument for some L < ∞.
 ### 7.4 Discussion Section Best Practices
 
 **Address limitations proactively:**
-> "While SpectralFM achieves SOTA results on NIR/Raman, we have not yet tested on IR, mass spectrometry, or NMR. The pretraining dataset (400K spectra) is modest compared to vision/language foundation models (billions). Future work should scale both modalities and data size."
+> "While Spektron achieves SOTA results on NIR/Raman, we have not yet tested on IR, mass spectrometry, or NMR. The pretraining dataset (400K spectra) is modest compared to vision/language foundation models (billions). Future work should scale both modalities and data size."
 
 **Relate to broader impact:**
-> "By enabling low-cost instruments to match the performance of expensive research-grade spectrometers, SpectralFM could democratize advanced chemical analysis in resource-constrained settings."
+> "By enabling low-cost instruments to match the performance of expensive research-grade spectrometers, Spektron could democratize advanced chemical analysis in resource-constrained settings."
 
 **Future work as opportunities, not weaknesses:**
 > "Promising directions include multi-modal fusion (IR + Raman + MS), active learning for sample selection, and integration with robotic lab automation."
@@ -856,19 +856,19 @@ first argument for some L < ∞.
 ## 11. FINAL TEMPLATE OUTLINE
 
 ```markdown
-# SpectralFM: A Foundation Model for Zero-to-Few-Shot Spectral Calibration Transfer via Hybrid State Space Models and Optimal Transport
+# Spektron: A Foundation Model for Zero-to-Few-Shot Spectral Calibration Transfer via Hybrid State Space Models and Optimal Transport
 
 ## Abstract (150-200 words)
 [Problem] Instrument variability in vibrational spectroscopy...
 [Gap] Current methods require substantial labeled data...
-[Method] We introduce SpectralFM, combining Mamba-Transformer, VIB, OT...
+[Method] We introduce Spektron, combining Mamba-Transformer, VIB, OT...
 [Results] Achieves R²=X.XXX with ≤10 samples, beats LoRA-CT...
 [Impact] First zero-shot calibration transfer via test-time training...
 
 ## 1. Introduction (1.5 pages)
 1.1 Hook: Problem impact + cost of recalibration
 1.2 Current approaches: classical + LoRA-CT
-1.3 Our approach: SpectralFM architecture + TTT
+1.3 Our approach: Spektron architecture + TTT
 1.4 Key results: Beat SOTA, zero-shot demonstration
 1.5 Contributions (bulleted)
 

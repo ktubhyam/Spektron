@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Mixture of Experts (MoE) + KAN Activations
+Spektron: Mixture of Experts (MoE) + KAN Activations
 
 Instrument-specific expert specialization with sparse top-k gating.
 Each expert can optionally use Kolmogorov-Arnold Network activations

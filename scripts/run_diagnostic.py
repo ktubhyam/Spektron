@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Diagnostic Experiment
+Spektron: Diagnostic Experiment
 
 MUST RUN FIRST before investing in full pretraining (50K steps, 2-6 hours).
 
@@ -84,7 +84,7 @@ def run_diagnostic(args):
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
 
     print("=" * 60)
-    print("SpectralFM DIAGNOSTIC EXPERIMENT")
+    print("Spektron DIAGNOSTIC EXPERIMENT")
     print("=" * 60)
     print(f"Device: {device}")
     print(f"Pretrain instruments: m5 + mp5 ({80*2}=160 spectra)")
@@ -276,7 +276,7 @@ def run_diagnostic(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SpectralFM Diagnostic")
+    parser = argparse.ArgumentParser(description="Spektron Diagnostic")
     parser.add_argument("--max-steps", type=int, default=2000)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--device", type=str, default="cuda")

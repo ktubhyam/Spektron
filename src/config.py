@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Configuration
+Spektron: Configuration
 Hybrid Mamba-Transformer with OT, Physics, Wavelets, MoE, TTT, FNO, KAN, VIB
 """
 from dataclasses import dataclass, field
@@ -192,10 +192,10 @@ class FinetuneConfig:
 
 @dataclass
 class SpectralFMConfig:
-    """Master configuration for SpectralFM v2."""
+    """Master configuration for Spektron."""
 
     # Model name
-    name: str = "SpectralFM-v2"
+    name: str = "Spektron"
     seed: int = 42
 
     # Backbone selection: "mamba" or "dlinoss"

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Run Pretraining
+Spektron: Run Pretraining
 
-Pretrains the SpectralFM model on the HDF5 corpus using MSRP + multi-loss.
+Pretrains the Spektron model on the HDF5 corpus using MSRP + multi-loss.
 
 Usage:
     python scripts/run_pretrain.py [--max-steps 5000] [--batch-size 32]
@@ -27,7 +27,7 @@ from src.training.trainer import PretrainTrainer
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Pretrain SpectralFM")
+    parser = argparse.ArgumentParser(description="Pretrain Spektron")
     parser.add_argument('--max-steps', type=int, default=5000,
                         help='Maximum training steps (default: 5000)')
     parser.add_argument('--batch-size', type=int, default=32,
@@ -95,7 +95,7 @@ def main():
     cfg.log_dir = str(log_dir)
 
     print(f"\n{'='*60}")
-    print("SpectralFM Pretraining")
+    print("Spektron Pretraining")
     print(f"{'='*60}")
     print(f"Corpus: {corpus_path}")
     print(f"Corpus size: {corpus_path.stat().st_size / 1e6:.1f} MB")

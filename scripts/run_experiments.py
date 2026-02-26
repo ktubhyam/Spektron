@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Master Experiment Runner
+Spektron: Master Experiment Runner
 
 Orchestrates all experiments E1-E12 for the paper.
 Each experiment can be run independently or all at once.
@@ -151,7 +151,7 @@ def run_E2(checkpoint_path, data_dir, device, experiments_dir, n_seeds=3):
 # E3: Sample Efficiency (THE KEY FIGURE)
 # ============================================================
 def run_E3(checkpoint_path, data_dir, device, experiments_dir, n_seeds=5):
-    """Sample efficiency: R² vs N for SpectralFM vs all baselines."""
+    """Sample efficiency: R² vs N for Spektron vs all baselines."""
     print("\n" + "="*60)
     print("E3: Sample Efficiency Curve (KEY FIGURE)")
     print("="*60)
@@ -163,7 +163,7 @@ def run_E3(checkpoint_path, data_dir, device, experiments_dir, n_seeds=5):
         print(f"\n  Property: {prop}")
         data_loader = lambda n, s: load_corn_data(data_dir, "m5", "mp6", idx, n, s)
 
-        # SpectralFM sweep
+        # Spektron sweep
         fm_results = run_sample_efficiency_sweep(
             checkpoint_path, data_loader, device,
             n_samples_list=[1, 3, 5, 10, 20, 30, 50],
@@ -242,10 +242,10 @@ def run_E5(checkpoint_path, data_dir, device, experiments_dir, n_seeds=3):
 
             data = load_corn_data(data_dir, source, target, 0, n_transfer=30, seed=42)
 
-            # SpectralFM
+            # Spektron
             metrics, _ = run_single_transfer(checkpoint_path, data, device)
             results[f"fm_{key}"] = metrics
-            print(f"    SpectralFM R² = {metrics['r2']:.4f}")
+            print(f"    Spektron R² = {metrics['r2']:.4f}")
 
             # Best baseline
             bl = run_baseline_comparison(
@@ -380,10 +380,10 @@ def run_E12(checkpoint_path, data_dir, device, experiments_dir, n_seeds=3):
         print(f"\n  Property: {prop}")
         data = load_tablet_data(data_dir, idx, n_transfer=30, seed=42)
 
-        # SpectralFM
+        # Spektron
         metrics, _ = run_single_transfer(checkpoint_path, data, device)
         results[f"fm_{prop}"] = metrics
-        print(f"    SpectralFM R² = {metrics['r2']:.4f}")
+        print(f"    Spektron R² = {metrics['r2']:.4f}")
 
         # Baselines
         bl = run_baseline_comparison(
@@ -413,7 +413,7 @@ GPU_HEAVY = {"E7"}  # Scaling requires multiple pretraining runs
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SpectralFM Experiment Runner")
+    parser = argparse.ArgumentParser(description="Spektron Experiment Runner")
     parser.add_argument("--experiment", type=str, help="Run specific experiment (E1-E12)")
     parser.add_argument("--all", action="store_true", help="Run all experiments")
     parser.add_argument("--list", action="store_true", help="List experiments")
@@ -422,7 +422,7 @@ def main():
     args = parser.parse_args()
 
     if args.list:
-        print("\nSpectralFM Experiments:")
+        print("\nSpektron Experiments:")
         print("=" * 60)
         for k, v in EXPERIMENTS.items():
             gpu = " [GPU-HEAVY]" if k in GPU_HEAVY else ""

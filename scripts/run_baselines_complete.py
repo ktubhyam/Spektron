@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Comprehensive Baseline Runner
+Spektron: Comprehensive Baseline Runner
 
 Runs ALL classical baselines on ALL properties × ALL instrument pairs,
 with multiple seeds for standard deviations.

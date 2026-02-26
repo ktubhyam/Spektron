@@ -1,5 +1,5 @@
 """
-LoRA (Low-Rank Adaptation) for SpectralFM fine-tuning.
+LoRA (Low-Rank Adaptation) for Spektron fine-tuning.
 
 Wraps existing linear layers with low-rank A*B decomposition.
 During fine-tuning, only A and B are trained (rank * d parameters
@@ -80,7 +80,7 @@ def inject_lora(model: nn.Module, target_modules: List[str],
     in target_modules, replaces the nn.Linear with a LoRALinear.
 
     Args:
-        model: the pretrained SpectralFM model
+        model: the pretrained Spektron model
         target_modules: list of substrings to match (e.g., ["q_proj", "k_proj", "v_proj"])
         rank: LoRA rank
         alpha: LoRA scaling factor

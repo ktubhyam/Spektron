@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Classical Calibration Transfer Baselines
+Spektron: Classical Calibration Transfer Baselines
 
 Implements classical methods for comparison:
 - PLS: Partial Least Squares (base calibration model)

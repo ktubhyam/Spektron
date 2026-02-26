@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Mamba Backbone (Selective State Space Model)
+Spektron: Mamba Backbone (Selective State Space Model)
 
 Pure PyTorch implementation of the core Mamba architecture for portability.
 For production, swap with mamba-ssm CUDA kernels for 5-10x speedup.

@@ -1,6 +1,6 @@
 # Molecular Symmetry, Point Groups, and Spectroscopic Identifiability: A Comprehensive Theoretical Framework
 
-**Research Summary for VS3L (SpectralFM) Paper**
+**Research Summary for VS3L (Spektron) Paper**
 **Compiled:** 2026-02-10
 **Context:** Novel theoretical angle connecting molecular symmetry to identifiability in spectroscopic inverse problems
 
@@ -395,7 +395,7 @@ Several high-quality databases provide character tables and symmetry information
 
 ---
 
-## 7. Implications for VS3L and SpectralFM
+## 7. Implications for VS3L and Spektron
 
 ### 7.1 Theoretical Contribution: Symmetry-Aware Foundation Models
 
@@ -626,4 +626,4 @@ For molecules with degenerate vibrational modes (E, T representations):
 **Total word count:** ~8,500 words
 **Compiled by:** Claude Sonnet 4.5 (Claude Code)
 **Date:** 2026-02-10
-**For project:** VS3L (SpectralFM) — Self-Supervised Foundation Model for Vibrational Spectroscopy
+**For project:** VS3L (Spektron) — Self-Supervised Foundation Model for Vibrational Spectroscopy

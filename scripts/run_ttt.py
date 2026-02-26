@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Test-Time Training Evaluation
+Spektron: Test-Time Training Evaluation
 
 The MOST IMPORTANT experiment: zero-shot calibration transfer via TTT.
 
@@ -49,7 +49,7 @@ from scripts.run_finetune import (
 
 
 def load_pretrained_model(checkpoint_path, device="cpu"):
-    """Load pretrained SpectralFM from checkpoint."""
+    """Load pretrained Spektron from checkpoint."""
     ckpt = torch.load(checkpoint_path, map_location=device)
     config = ckpt.get("config", SpectralFMConfig())
     model = SpectralFM(config)
@@ -277,7 +277,7 @@ def run_ttt_ablation(checkpoint_path, data, device):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SpectralFM TTT Evaluation")
+    parser = argparse.ArgumentParser(description="Spektron TTT Evaluation")
     parser.add_argument("--checkpoint", type=str, default="checkpoints/best_pretrain.pt")
     parser.add_argument("--dataset", choices=["corn", "tablet"], default="corn")
     parser.add_argument("--source", type=str, default="m5")

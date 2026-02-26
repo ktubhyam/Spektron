@@ -1,4 +1,4 @@
-# SpectralFM — Comprehensive Reference Document
+# Spektron — Comprehensive Reference Document
 ## Full Details for Paper Development
 
 ---

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build SpectralFM Pretraining Corpus v2
+Build Spektron Pretraining Corpus v2
 
 Downloads spectra from multiple public databases, normalizes them,
 applies data augmentation, and saves to a unified HDF5 file.
@@ -325,7 +325,7 @@ def print_summary(h5_path: Path, real_counts: dict, augment_ratio: int):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build SpectralFM pretraining corpus v2")
+    parser = argparse.ArgumentParser(description="Build Spektron pretraining corpus v2")
     parser.add_argument("--output", type=str, default="data/pretrain/spectral_corpus_v2.h5",
                         help="Output HDF5 path")
     parser.add_argument("--cache-dir", type=str, default="data/pretrain/downloads",

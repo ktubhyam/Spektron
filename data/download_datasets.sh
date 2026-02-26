@@ -1,8 +1,8 @@
 #!/bin/bash
-# SpectralFM Dataset Download Script
+# Spektron Dataset Download Script
 # Run this locally to download all required datasets
 
-echo "=== SpectralFM Dataset Download ==="
+echo "=== Spektron Dataset Download ==="
 
 # 1. Corn dataset (Eigenvector)
 echo "[1/5] Downloading Corn dataset..."

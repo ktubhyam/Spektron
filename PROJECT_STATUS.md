@@ -1,4 +1,4 @@
-# SpectralFM -- Project Status
+# Spektron -- Project Status
 
 **Last Updated:** Feb 26, 2026
 **Status:** P3 IN PROGRESS. Training running on Vast.ai (2x RTX 5060 Ti). Step ~5300/50000. 20 critical bug fixes applied. Stable training with zero NaN/Inf.

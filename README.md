@@ -1,8 +1,8 @@
-# SpectralFM (Spektron)
+# Spektron
 
 **Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning**
 
-A self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman) that learns to disentangle chemical content from instrument-specific artifacts. SpectralFM combines a **D-LinOSS backbone** (damped linear oscillatory state-space model) with Sinkhorn-based optimal transport domain adaptation, a variational information bottleneck, and physics-informed regularization to achieve calibration transfer across spectrometers using 10 or fewer labeled samples — where classical methods require 30-60.
+A self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman) that learns to disentangle chemical content from instrument-specific artifacts. Spektron combines a **D-LinOSS backbone** (damped linear oscillatory state-space model) with Sinkhorn-based optimal transport domain adaptation, a variational information bottleneck, and physics-informed regularization to achieve calibration transfer across spectrometers using 10 or fewer labeled samples — where classical methods require 30-60.
 
 > **Author:** Tubhyam Karthikeyan (ICT Mumbai / InvyrAI)
 >
@@ -18,7 +18,7 @@ Calibration transfer in spectroscopy has relied on the same approaches for 30+ y
 
 ## Our Approach
 
-SpectralFM proposes a **fifth strategy** for calibration transfer — after instrument matching, global modeling, model updating, and sensor selection (Workman & Mark, 2017): learn instrument-invariant chemical representations from a large pretraining corpus, then adapt with minimal transfer data.
+Spektron proposes a **fifth strategy** for calibration transfer — after instrument matching, global modeling, model updating, and sensor selection (Workman & Mark, 2017): learn instrument-invariant chemical representations from a large pretraining corpus, then adapt with minimal transfer data.
 
 - **Standard-free (TTT):** Test-time training on unlabeled spectra from the new instrument — no paired standards needed
 - **Sample-efficient (LoRA):** Fine-tuning with as few as 5-10 transfer samples
@@ -151,7 +151,7 @@ python run.py --mode ttt --checkpoint checkpoints/pretrain_best.pt
 | DS | Classical | Direct Standardization |
 | SBC | Classical | Slope/Bias Correction |
 | PLS | Classical | Partial Least Squares regression |
-| SpectralFM (ours) | Foundation model | Self-supervised pretraining + LoRA transfer + TTT |
+| Spektron (ours) | Foundation model | Self-supervised pretraining + LoRA transfer + TTT |
 
 ## Benchmark Targets
 
@@ -160,7 +160,7 @@ python run.py --mode ttt --checkpoint checkpoints/pretrain_best.pt
 | PDS | ~0.55 | 30 |
 | DS | ~0.69 | 30 |
 | LoRA-CT (literature) | 0.952 | 50 |
-| **SpectralFM (target)** | **>0.96** | **10** |
+| **Spektron (target)** | **>0.96** | **10** |
 
 ## Pretraining Objectives
 
@@ -192,7 +192,7 @@ MIT License. See [LICENSE](LICENSE).
 ## Citation
 
 ```bibtex
-@article{karthikeyan2026spectralfm,
+@article{karthikeyan2026spektron,
   title={Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning},
   author={Karthikeyan, Tubhyam},
   journal={Analytical Chemistry},

@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Pretraining Data Pipeline
+Spektron: Pretraining Data Pipeline
 
 Downloads, parses, normalizes, and augments spectral data from multiple
 public databases into a unified HDF5 corpus for self-supervised pretraining.
@@ -522,7 +522,7 @@ class PretrainingCorpusBuilder:
     def build(self, target_total: int = 200000):
         """Build the complete pretraining corpus."""
         logger.info("=" * 60)
-        logger.info("Building SpectralFM Pretraining Corpus")
+        logger.info("Building Spektron Pretraining Corpus")
         logger.info("=" * 60)
 
         # Collect real spectra

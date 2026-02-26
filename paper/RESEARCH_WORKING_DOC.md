@@ -1,4 +1,4 @@
-# SpectralFM: Self-Supervised Spectral Foundation Model for Few-Shot Calibration Transfer
+# Spektron: Self-Supervised Spectral Foundation Model for Few-Shot Calibration Transfer
 ## Running Working Document — Last Updated: Feb 10, 2026 (Phase 3: Implementation)
 
 ---

@@ -51,7 +51,7 @@ def main():
     data_dir = project_dir / "data"
 
     print("\n" + "="*60)
-    print("SpectralFM v2: Pre-GPU Integration Test")
+    print("Spektron: Pre-GPU Integration Test")
     print("="*60)
 
     # ── 1. Model Build ──
@@ -63,7 +63,7 @@ def main():
         config = SpectralFMConfig()
         model = SpectralFM(config)
         assert sum(p.numel() for p in model.parameters()) > 1_000_000
-    test("Build SpectralFM", test_model_build)
+    test("Build Spektron", test_model_build)
 
     def test_lora_inject():
         from src.config import SpectralFMConfig
@@ -196,11 +196,11 @@ def main():
         from src.evaluation.visualization import generate_latex_table
         results = {
             "m5→mp6 moisture": {
-                "SpectralFM": {"r2_mean": 0.8, "r2_std": 0.02},
+                "Spektron": {"r2_mean": 0.8, "r2_std": 0.02},
                 "DS": {"r2_mean": 0.65, "r2_std": 0.05},
             }
         }
-        latex = generate_latex_table(results, ["SpectralFM", "DS"])
+        latex = generate_latex_table(results, ["Spektron", "DS"])
         assert "\\begin{table}" in latex
         assert "\\textbf" in latex
     test("LaTeX table generation", test_latex)

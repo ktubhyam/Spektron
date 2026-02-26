@@ -1,7 +1,7 @@
 # Comprehensive Resolution of PID Non-Uniqueness for IR/Raman Complementarity
 ## Critical Research Analysis & Implementation Roadmap
 
-**Author:** Analysis for SpectralFM Project
+**Author:** Analysis for Spektron Project
 **Date:** February 10, 2026
 **Status:** CRITICAL — Theorem 3 viability depends on this
 

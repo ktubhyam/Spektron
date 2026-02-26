@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Publication-Quality Visualization
+Spektron: Publication-Quality Visualization
 
 Generates all figures for the paper:
 - Fig 1: Sample efficiency curves (R² vs N transfer samples)
@@ -61,8 +61,8 @@ STYLE = {
 
 # Color palette: accessible, distinguishable, printer-friendly
 COLORS = {
-    "SpectralFM": "#2166AC",       # blue
-    "SpectralFM+TTT": "#053061",   # dark blue
+    "Spektron": "#2166AC",       # blue
+    "Spektron+TTT": "#053061",   # dark blue
     "DS": "#B2182B",               # red
     "PDS": "#EF8A62",              # salmon
     "SBC": "#67A9CF",              # light blue
@@ -74,8 +74,8 @@ COLORS = {
 }
 
 MARKERS = {
-    "SpectralFM": "o",
-    "SpectralFM+TTT": "s",
+    "Spektron": "o",
+    "Spektron+TTT": "s",
     "DS": "^",
     "PDS": "v",
     "SBC": "D",
@@ -126,12 +126,12 @@ def plot_sample_efficiency(
     apply_style()
     fig, ax = plt.subplots(1, 1, figsize=(5.5, 4))
 
-    # SpectralFM curve
+    # Spektron curve
     ns = sorted(spectral_fm_results.keys())
     means = [spectral_fm_results[n]["r2_mean"] for n in ns]
     stds = [spectral_fm_results[n].get("r2_std", 0) for n in ns]
-    ax.errorbar(ns, means, yerr=stds, label="SpectralFM (LoRA)",
-                color=COLORS["SpectralFM"], marker=MARKERS["SpectralFM"],
+    ax.errorbar(ns, means, yerr=stds, label="Spektron (LoRA)",
+                color=COLORS["Spektron"], marker=MARKERS["Spektron"],
                 capsize=3, linewidth=2)
 
     # TTT curve (if available)
@@ -139,8 +139,8 @@ def plot_sample_efficiency(
         ns_ttt = sorted(ttt_results.keys())
         means_ttt = [ttt_results[n]["r2_mean"] for n in ns_ttt]
         stds_ttt = [ttt_results[n].get("r2_std", 0) for n in ns_ttt]
-        ax.errorbar(ns_ttt, means_ttt, yerr=stds_ttt, label="SpectralFM (TTT+LoRA)",
-                    color=COLORS["SpectralFM+TTT"], marker=MARKERS["SpectralFM+TTT"],
+        ax.errorbar(ns_ttt, means_ttt, yerr=stds_ttt, label="Spektron (TTT+LoRA)",
+                    color=COLORS["Spektron+TTT"], marker=MARKERS["Spektron+TTT"],
                     capsize=3, linewidth=2, linestyle="--")
 
     # Baseline horizontal lines (at their fixed n_transfer)
@@ -271,7 +271,7 @@ def plot_ttt_steps(
     steps = sorted(ttt_results.keys())
     r2s = [ttt_results[s]["r2"] for s in steps]
 
-    ax.plot(steps, r2s, "o-", color=COLORS["SpectralFM+TTT"], linewidth=2, markersize=7)
+    ax.plot(steps, r2s, "o-", color=COLORS["Spektron+TTT"], linewidth=2, markersize=7)
 
     if baseline_r2 is not None:
         ax.axhline(y=baseline_r2, color=COLORS["DS"], linestyle=":",
@@ -309,7 +309,7 @@ def plot_scaling_law(
     x = np.log10(corpus_sizes)
     ax.errorbar(x, r2_means,
                 yerr=r2_stds if r2_stds else None,
-                fmt="o-", color=COLORS["SpectralFM"], capsize=4,
+                fmt="o-", color=COLORS["Spektron"], capsize=4,
                 linewidth=2, markersize=8)
 
     # Fit line
@@ -317,7 +317,7 @@ def plot_scaling_law(
         coeffs = np.polyfit(x, r2_means, 1)
         x_fit = np.linspace(x[0] - 0.2, x[-1] + 0.5, 100)
         ax.plot(x_fit, np.polyval(coeffs, x_fit), "--",
-               color=COLORS["SpectralFM"], alpha=0.4,
+               color=COLORS["Spektron"], alpha=0.4,
                label=f"slope={coeffs[0]:.3f}")
         ax.legend()
 
@@ -416,7 +416,7 @@ def plot_calibration(
         actual_coverages.append(covered)
 
     ax2.plot(confidence_levels, actual_coverages, "o-",
-            color=COLORS["SpectralFM"], linewidth=2, markersize=4)
+            color=COLORS["Spektron"], linewidth=2, markersize=4)
     ax2.plot([0.5, 1], [0.5, 1], "k--", alpha=0.5, linewidth=1,
             label="Perfect calibration")
     ax2.set_xlabel("Expected coverage")

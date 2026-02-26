@@ -1,6 +1,6 @@
 # DEEP ANALYSIS: Hidden Assumptions and Failure Modes in VS3L Theoretical Framework
 
-**Project:** VS3L (SpectralFM)
+**Project:** VS3L (Spektron)
 **Date:** 2026-02-10
 **Purpose:** Comprehensive identification of hidden assumptions, failure modes, and scope limitations in three core theorems
 **Status:** Pre-publication critical review

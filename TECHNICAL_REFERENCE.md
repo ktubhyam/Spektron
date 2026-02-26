@@ -1,4 +1,4 @@
-# SpectralFM — Technical Reference Card
+# Spektron — Technical Reference Card
 
 ## Quick Reference: What Each Component Does & Why
 
@@ -71,7 +71,7 @@ Calibration transfer in spectroscopy: a model trained on Instrument A doesn't wo
 - **RMSEP** (root mean square error of prediction): lower is better
 - **RPD** (ratio of performance to deviation): > 3 is excellent
 - **Bias**: systematic prediction offset
-- **Target:** SpectralFM with 10 samples must beat LoRA-CT with 50 samples (R² > 0.952)
+- **Target:** Spektron with 10 samples must beat LoRA-CT with 50 samples (R² > 0.952)
 
 ### BASELINES TO BEAT
 | Method | Type | Description |

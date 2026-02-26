@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Transfer Heads
+Spektron: Transfer Heads
 
 1. FNO (Fourier Neural Operator) — resolution-independent spectral transfer
 2. VIB (Variational Information Bottleneck) — disentangle chemistry vs instrument

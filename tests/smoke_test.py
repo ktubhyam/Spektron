@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2 — Smoke Test Suite
+Spektron — Smoke Test Suite
 
 Run: python tests/smoke_test.py
 Tests each module independently, then tests the full forward/backward pass.
@@ -391,7 +391,7 @@ def test_raw_embedding():
 
 
 def test_dlinoss_full_forward():
-    """Test full SpectralFM with D-LinOSS backbone."""
+    """Test full Spektron with D-LinOSS backbone."""
     import torch
     from src.config import get_light_dlinoss_config
     from src.models.spectral_fm import SpectralFM
@@ -522,7 +522,7 @@ def test_n_patches_computed():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("SpectralFM v2 — Smoke Test Suite")
+    print("Spektron — Smoke Test Suite")
     print("=" * 60)
 
     print("\n--- 1. Imports ---")

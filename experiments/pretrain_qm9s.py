@@ -2,7 +2,7 @@
 """
 QM9S Pretraining: D-LinOSS backbone on 104K molecular spectra.
 
-Trains SpectralFM with D-LinOSS backbone on QM9S IR+Raman spectra
+Trains Spektron with D-LinOSS backbone on QM9S IR+Raman spectra
 using masked spectral reconstruction + physics losses + VIB.
 
 Prerequisites:

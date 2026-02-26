@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SpectralFM v2: Main Run Script
+Spektron: Main Run Script
 ================================
 Bridges State Space Models and Optimal Transport for
 Zero-to-Few-Shot Spectral Calibration Transfer
@@ -66,7 +66,7 @@ def verify_data(config: SpectralFMConfig):
 
 
 def build_model(config: SpectralFMConfig) -> SpectralFM:
-    """Build SpectralFM v2 model."""
+    """Build Spektron model."""
     model = SpectralFM(config)
     return model
 
@@ -310,7 +310,7 @@ def run_baselines(config: SpectralFMConfig):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SpectralFM v2")
+    parser = argparse.ArgumentParser(description="Spektron")
     parser.add_argument("--mode", type=str, default="all",
                         choices=["pretrain", "finetune", "ttt", "baselines", "all"])
     parser.add_argument("--checkpoint", type=str, default=None)

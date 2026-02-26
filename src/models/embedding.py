@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Spectral Embeddings
+Spektron: Spectral Embeddings
 
 Two embedding modes:
 1. WaveletEmbedding: DWT-based multi-scale tokenization with patching (stride=16, 127 tokens)

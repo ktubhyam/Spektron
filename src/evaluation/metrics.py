@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Evaluation & Metrics
+Spektron: Evaluation & Metrics
 
 Comprehensive evaluation for calibration transfer:
 - R², RMSEP, RPD, bias, slope

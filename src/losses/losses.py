@@ -1,5 +1,5 @@
 """
-SpectralFM v2: Loss Functions
+Spektron: Loss Functions
 
 Complete loss suite:
 - L_MSRP: Masked Spectrum Reconstruction (core pretraining)
