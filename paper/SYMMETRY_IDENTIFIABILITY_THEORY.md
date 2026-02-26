@@ -1,6 +1,6 @@
 # Molecular Symmetry, Point Groups, and Spectroscopic Identifiability: A Comprehensive Theoretical Framework
 
-**Research Summary for VS3L (Spektron) Paper**
+**Research Summary for Spektron (Spektron) Paper**
 **Compiled:** 2026-02-10
 **Context:** Novel theoretical angle connecting molecular symmetry to identifiability in spectroscopic inverse problems
 
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document synthesizes comprehensive research on how **molecular point group symmetry fundamentally constrains spectroscopic identifiability**. This is VS3L's most novel theoretical angle, connecting group theory, spectroscopy selection rules, and machine learning identifiability theory. The key insight: **molecules with higher symmetry have fewer observable vibrational modes and more degenerate states, creating fundamental ambiguities that no model can resolve without complementary information (IR + Raman)**.
+This document synthesizes comprehensive research on how **molecular point group symmetry fundamentally constrains spectroscopic identifiability**. This is Spektron's most novel theoretical angle, connecting group theory, spectroscopy selection rules, and machine learning identifiability theory. The key insight: **molecules with higher symmetry have fewer observable vibrational modes and more degenerate states, creating fundamental ambiguities that no model can resolve without complementary information (IR + Raman)**.
 
 ---
 
@@ -303,7 +303,7 @@ From [Inverse Problems, Deep Learning, and Symmetry Breaking (arXiv:2003.09077)]
 3. **Quotient learning:** Learn on the quotient space X/G directly
 4. **Complementary observables:** Use multiple measurement modalities (IR + Raman)
 
-**Application to VS3L:**
+**Application to Spektron:**
 - **VIB disentanglement** separates z_chem (chemical, transferable) from z_inst (instrument, nuisance)
 - This is a form of learning invariant representations under the instrument symmetry group
 - **Optimal transport** aligns latent distributions across instruments (domain adaptation under instrument symmetries)
@@ -353,7 +353,7 @@ From [Inverse Problems, Deep Learning, and Symmetry Breaking (arXiv:2003.09077)]
 - Generation of symmetry element sets
 - Character table generation
 
-**Use case for VS3L:** Could be used to:
+**Use case for Spektron:** Could be used to:
 1. Assign point groups to molecules in training data
 2. Predict expected number of IR/Raman peaks
 3. Identify degenerate modes
@@ -395,11 +395,11 @@ Several high-quality databases provide character tables and symmetry information
 
 ---
 
-## 7. Implications for VS3L and Spektron
+## 7. Implications for Spektron and Spektron
 
 ### 7.1 Theoretical Contribution: Symmetry-Aware Foundation Models
 
-**Novel claim:** VS3L is the first foundation model for vibrational spectroscopy that **explicitly accounts for molecular symmetry constraints** in the latent space and loss formulation.
+**Novel claim:** Spektron is the first foundation model for vibrational spectroscopy that **explicitly accounts for molecular symmetry constraints** in the latent space and loss formulation.
 
 **Key architectural elements that respect symmetry:**
 
@@ -566,7 +566,7 @@ For molecules with degenerate vibrational modes (E, T representations):
 
 ---
 
-## 9. Summary: Key Takeaways for VS3L Paper
+## 9. Summary: Key Takeaways for Spektron Paper
 
 ### 9.1 Core Theoretical Claims
 
@@ -580,7 +580,7 @@ For molecules with degenerate vibrational modes (E, T representations):
    - Quotient space X/G represents truly identifiable degrees of freedom
    - Recent work (arXiv:2511.08995) formalizes this for inverse problems
 
-3. **VS3L architecture respects symmetry constraints**
+3. **Spektron architecture respects symmetry constraints**
    - VIB disentanglement separates chemical (G-equivariant) from instrumental (G-invariant)
    - Optimal transport aligns distributions on orbit space
    - Multi-modal (IR + Raman) pretraining exploits complementarity
@@ -626,4 +626,4 @@ For molecules with degenerate vibrational modes (E, T representations):
 **Total word count:** ~8,500 words
 **Compiled by:** Claude Sonnet 4.5 (Claude Code)
 **Date:** 2026-02-10
-**For project:** VS3L (Spektron) — Self-Supervised Foundation Model for Vibrational Spectroscopy
+**For project:** Spektron (Spektron) — Self-Supervised Foundation Model for Vibrational Spectroscopy

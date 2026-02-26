@@ -1,6 +1,6 @@
 # Symmetry & Identifiability Quick Reference
 
-**For VS3L Paper — Equations, Tables, and Key Facts**
+**For Spektron Paper — Equations, Tables, and Key Facts**
 
 ---
 
@@ -285,7 +285,7 @@ The inverse map is defined only on the quotient space:
 
 ### Introduction
 - [ ] Mention symmetry as fundamental constraint
-- [ ] State that VS3L is first foundation model accounting for symmetry
+- [ ] State that Spektron is first foundation model accounting for symmetry
 
 ### Background
 - [ ] 1-page subsection: "Group Theory and Selection Rules"
@@ -327,7 +327,7 @@ The inverse map is defined only on the quotient space:
 
 2. "For centrosymmetric molecules, IR and Raman spectra exhibit perfect mutual exclusion, making multi-modal pretraining essential"
 
-3. "VS3L is the first foundation model for vibrational spectroscopy that explicitly respects symmetry constraints through VIB disentanglement and optimal transport"
+3. "Spektron is the first foundation model for vibrational spectroscopy that explicitly respects symmetry constraints through VIB disentanglement and optimal transport"
 
 4. "We demonstrate that high-symmetry molecules (D₆ₕ, Oₕ) have 60-70% lower observable information content than low-symmetry molecules (C₁, C₂ᵥ), explaining domain-specific transfer performance"
 

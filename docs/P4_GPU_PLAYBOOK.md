@@ -33,7 +33,7 @@ All CPU-side infrastructure is complete:
 
 ```bash
 # 1. Clone repo
-git clone <REPO_URL> VS3L && cd VS3L
+git clone <REPO_URL> Spektron && cd Spektron
 
 # 2. Install dependencies
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121

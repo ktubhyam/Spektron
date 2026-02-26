@@ -11,12 +11,12 @@ ssh -i ~/.ssh/lambda_key ubuntu@<INSTANCE_IP>
 
 ### 1.2 Clone repo + transfer data
 ```bash
-git clone https://github.com/<your-repo>/VS3L.git ~/VS3L
-cd ~/VS3L
+git clone https://github.com/<your-repo>/Spektron.git ~/Spektron
+cd ~/Spektron
 
 # Transfer corpus from local (run from LOCAL machine):
-# scp -i ~/.ssh/lambda_key data/pretrain/spectral_corpus_v2.h5 ubuntu@<IP>:~/VS3L/data/pretrain/
-# scp -i ~/.ssh/lambda_key -r data/processed/ ubuntu@<IP>:~/VS3L/data/processed/
+# scp -i ~/.ssh/lambda_key data/pretrain/spectral_corpus_v2.h5 ubuntu@<IP>:~/Spektron/data/pretrain/
+# scp -i ~/.ssh/lambda_key -r data/processed/ ubuntu@<IP>:~/Spektron/data/processed/
 ```
 
 ### 1.3 Install dependencies
@@ -54,7 +54,7 @@ print('Data OK')
 **Purpose**: Validate architecture works before investing 2-6 hours in full pretraining.
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 scripts/run_diagnostic.py --device cuda --max-steps 2000
 ```
 
@@ -231,16 +231,16 @@ INSTANCE=ubuntu@<INSTANCE_IP>
 KEY=~/.ssh/lambda_key
 
 # All experiment JSONs
-scp -i $KEY -r $INSTANCE:~/VS3L/experiments/ ./experiments_gpu/
+scp -i $KEY -r $INSTANCE:~/Spektron/experiments/ ./experiments_gpu/
 
 # All figures
-scp -i $KEY -r $INSTANCE:~/VS3L/figures/ ./figures_gpu/
+scp -i $KEY -r $INSTANCE:~/Spektron/figures/ ./figures_gpu/
 
 # Best checkpoint
-scp -i $KEY $INSTANCE:~/VS3L/checkpoints/best_pretrain.pt ./checkpoints/
+scp -i $KEY $INSTANCE:~/Spektron/checkpoints/best_pretrain.pt ./checkpoints/
 
 # Logs
-scp -i $KEY -r $INSTANCE:~/VS3L/logs/ ./logs_gpu/
+scp -i $KEY -r $INSTANCE:~/Spektron/logs/ ./logs_gpu/
 
 # W&B should already be synced
 ```

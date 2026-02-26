@@ -27,8 +27,8 @@ python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, GPUs: {torc
 
 ```bash
 cd ~
-git clone https://github.com/ktubhyam/VS3L.git
-cd ~/VS3L
+git clone https://github.com/ktubhyam/Spektron.git
+cd ~/Spektron
 ```
 
 ## 1.3 Transfer Data Files (from LOCAL machine, new terminal)
@@ -41,23 +41,23 @@ Run these commands from your LOCAL Mac terminal:
 REMOTE=ubuntu@211.72.13.201
 
 # Create directories on remote first
-ssh $REMOTE "mkdir -p ~/VS3L/data/pretrain ~/VS3L/data/processed/corn ~/VS3L/data/processed/tablet ~/VS3L/checkpoints ~/VS3L/experiments ~/VS3L/figures ~/VS3L/logs"
+ssh $REMOTE "mkdir -p ~/Spektron/data/pretrain ~/Spektron/data/processed/corn ~/Spektron/data/processed/tablet ~/Spektron/checkpoints ~/Spektron/experiments ~/Spektron/figures ~/Spektron/logs"
 
 # Transfer corpus (444MB — ~4 sec at 903 Mbps)
-scp /Users/admin/Documents/GitHub/VS3L/data/pretrain/spectral_corpus_v2.h5 $REMOTE:~/VS3L/data/pretrain/
+scp /Users/admin/Documents/GitHub/Spektron/data/pretrain/spectral_corpus_v2.h5 $REMOTE:~/Spektron/data/pretrain/
 
 # Transfer processed corn data (7 files, ~4.5MB total)
-scp /Users/admin/Documents/GitHub/VS3L/data/processed/corn/*.npy $REMOTE:~/VS3L/data/processed/corn/
+scp /Users/admin/Documents/GitHub/Spektron/data/processed/corn/*.npy $REMOTE:~/Spektron/data/processed/corn/
 
 # Transfer processed tablet data (10 files, ~3.4MB total)
-scp /Users/admin/Documents/GitHub/VS3L/data/processed/tablet/*.npy $REMOTE:~/VS3L/data/processed/tablet/
-scp /Users/admin/Documents/GitHub/VS3L/data/processed/tablet/metadata.json $REMOTE:~/VS3L/data/processed/tablet/
+scp /Users/admin/Documents/GitHub/Spektron/data/processed/tablet/*.npy $REMOTE:~/Spektron/data/processed/tablet/
+scp /Users/admin/Documents/GitHub/Spektron/data/processed/tablet/metadata.json $REMOTE:~/Spektron/data/processed/tablet/
 ```
 
 ## 1.4 Install Dependencies (on the remote instance)
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 
 # Core dependencies (torch should already be on Lambda, but verify)
 pip install h5py PyWavelets POT einops wandb scipy scikit-learn matplotlib seaborn tqdm pyyaml peft pandas jcamp
@@ -77,7 +77,7 @@ print('All imports OK')
 ## 1.5 Verify Data Integrity
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 -c "
 import h5py, numpy as np
 from pathlib import Path
@@ -125,7 +125,7 @@ tablet/test_Y: (460, 3)
 ## 1.6 Verify Model Builds on GPU
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 -c "
 import torch
 from src.config import SpectralFMConfig
@@ -153,7 +153,7 @@ Expected: GPU mem < 1 GB. This model is tiny (6.5M params), leaving >30GB headro
 ## 1.7 Run Smoke Tests
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 tests/smoke_test.py
 ```
 
@@ -202,7 +202,7 @@ wandb login
 # and directly tests: does the architecture learn anything useful?
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 CUDA_VISIBLE_DEVICES=0 python3 scripts/run_diagnostic.py \
     --device cuda \
     --max-steps 2000 \
@@ -283,7 +283,7 @@ print(f'Diagnosis: {\"PASS\" if d[\"diagnosis\"][\"pass\"] else \"FAIL\"} (best 
 Quick 100-step run to verify throughput, loss decreasing, checkpointing:
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 CUDA_VISIBLE_DEVICES=0 python3 scripts/run_pretrain.py \
     --max-steps 100 \
     --batch-size 128 \
@@ -321,7 +321,7 @@ rm -f checkpoints/pretrain_step_50.pt checkpoints/pretrain_step_100.pt checkpoin
 ## 3.2 Full Pretraining Run
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 CUDA_VISIBLE_DEVICES=0 python3 scripts/run_pretrain.py \
     --max-steps 50000 \
     --batch-size 128 \
@@ -348,7 +348,7 @@ CUDA_VISIBLE_DEVICES=0 python3 scripts/run_pretrain.py \
 **Monitor from a second SSH terminal:**
 ```bash
 # Live loss monitoring
-tail -f ~/VS3L/logs/pretrain_v2_50k/metrics.jsonl 2>/dev/null | python3 -c "
+tail -f ~/Spektron/logs/pretrain_v2_50k/metrics.jsonl 2>/dev/null | python3 -c "
 import sys, json
 for line in sys.stdin:
     try:
@@ -437,7 +437,7 @@ ls -lh checkpoints/*.pt
 Run this in its own terminal (no GPU needed):
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 scripts/run_baselines_complete.py --n-seeds 5 \
     > logs/baselines_stdout.txt 2>&1 &
 echo "Baselines PID: $!"
@@ -451,7 +451,7 @@ Output: `experiments/baselines_complete.json`
 **This is the most important experiment.** Run it on GPU 0:
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 
 # E3: Sample efficiency sweep (R² vs N transfer samples)
 # This generates THE KEY FIGURE for the paper
@@ -521,7 +521,7 @@ echo "E4 PID: $E4_PID"
 ## 4.2 E1 + E2: Ablation Studies (GPU 2, ~30 min)
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 
 # E1: Pretraining ablation (pretrained vs random init)
 CUDA_VISIBLE_DEVICES=2 python3 scripts/run_experiments.py \
@@ -541,7 +541,7 @@ CUDA_VISIBLE_DEVICES=2 python3 scripts/run_experiments.py \
 ## 4.3 E5 + E10 + E11: Supporting Experiments (GPU 3, ~25 min)
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 
 # E5: Cross-instrument generalization (all 6 pairs)
 CUDA_VISIBLE_DEVICES=3 python3 scripts/run_experiments.py \
@@ -609,7 +609,7 @@ echo "ALL EXPERIMENTS COMPLETE"
 ## 5.1 Generate All Figures
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 python3 -c "
 from src.evaluation.visualization import generate_all_figures_from_experiments
 generate_all_figures_from_experiments('experiments', 'figures')
@@ -737,7 +737,7 @@ This tests whether downstream performance scales with pretraining corpus size.
 Runs 3 additional pretraining jobs at subsampled corpus sizes.
 
 ```bash
-cd ~/VS3L
+cd ~/Spektron
 
 # Run 3 scaled pretraining jobs in parallel (one per GPU)
 CUDA_VISIBLE_DEVICES=1 python3 scripts/run_pretrain.py \
@@ -807,26 +807,26 @@ Run these from your LOCAL Mac terminal:
 
 ```bash
 REMOTE=ubuntu@211.72.13.201
-LOCAL_DIR=/Users/admin/Documents/GitHub/VS3L
+LOCAL_DIR=/Users/admin/Documents/GitHub/Spektron
 
 # Download all experiment JSONs
-scp -r $REMOTE:~/VS3L/experiments/ $LOCAL_DIR/experiments_gpu/
+scp -r $REMOTE:~/Spektron/experiments/ $LOCAL_DIR/experiments_gpu/
 
 # Download all figures
-scp -r $REMOTE:~/VS3L/figures/ $LOCAL_DIR/figures_gpu/
+scp -r $REMOTE:~/Spektron/figures/ $LOCAL_DIR/figures_gpu/
 
 # Download best checkpoint (most important file!)
 mkdir -p $LOCAL_DIR/checkpoints
-scp $REMOTE:~/VS3L/checkpoints/best_pretrain.pt $LOCAL_DIR/checkpoints/
+scp $REMOTE:~/Spektron/checkpoints/best_pretrain.pt $LOCAL_DIR/checkpoints/
 
 # Download final checkpoint
-scp $REMOTE:~/VS3L/checkpoints/pretrain_final.pt $LOCAL_DIR/checkpoints/
+scp $REMOTE:~/Spektron/checkpoints/pretrain_final.pt $LOCAL_DIR/checkpoints/
 
 # Download all logs
-scp -r $REMOTE:~/VS3L/logs/ $LOCAL_DIR/logs_gpu/
+scp -r $REMOTE:~/Spektron/logs/ $LOCAL_DIR/logs_gpu/
 
 # Download scaling checkpoints (if E7 was run)
-scp -r $REMOTE:~/VS3L/checkpoints/scaling_*/ $LOCAL_DIR/checkpoints/ 2>/dev/null
+scp -r $REMOTE:~/Spektron/checkpoints/scaling_*/ $LOCAL_DIR/checkpoints/ 2>/dev/null
 
 echo "ALL RESULTS DOWNLOADED"
 echo "Total cost: check Lambda dashboard"
