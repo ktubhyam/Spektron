@@ -107,9 +107,9 @@ def run_single(backbone: str, seed: int, h5_path: str,
         "backbone_params": backbone_params,
         "total_params": total_params,
         "train_time_sec": elapsed,
-        "final_train_loss": history.get("train_losses", [None])[-1],
-        "final_val_loss": history.get("val_losses", [None])[-1],
-        "best_val_loss": min(history.get("val_losses", [float("inf")])),
+        "final_train_loss": history[-1]["total"] if history else None,
+        "final_val_loss": trainer.best_val_loss if trainer.best_val_loss < float("inf") else None,
+        "best_val_loss": trainer.best_val_loss,
         "steps": config.pretrain.max_steps,
     }
 
