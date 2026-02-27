@@ -1,0 +1,34 @@
+{
+  "title": "Spektron",
+  "description": "Foundation model for vibrational spectroscopy using D-LinOSS state space models, masked pretraining, and variational information bottleneck.",
+  "creators": [
+    {
+      "name": "Karthikeyan, Tubhyam",
+      "orcid": "0009-0001-4424-7297",
+      "affiliation": "Institute of Chemical Technology, Mumbai"
+    }
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "keywords": [
+    "spectroscopy",
+    "deep learning",
+    "state space models",
+    "foundation model",
+    "masked pretraining",
+    "vibrational spectroscopy"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://tubhyam.dev/projects/spektron",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://github.com/ktubhyam/Spektron",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
