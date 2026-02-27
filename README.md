@@ -10,6 +10,8 @@ An honest empirical study evaluating whether oscillatory SSMs (D-LinOSS) bring u
 
 **[Project Page](https://tubhyam.dev/projects/spektron)** | **[Blog](https://tubhyam.dev/blog/spectral-inverse-problem)**
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18802440.svg)](https://doi.org/10.5281/zenodo.18802440)
+
 ---
 
 ## Key Claims
