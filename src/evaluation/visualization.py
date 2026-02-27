@@ -106,7 +106,7 @@ def save_fig(fig, name, figures_dir="figures"):
 # ============================================================
 
 def plot_sample_efficiency(
-    spectral_fm_results: Dict[int, Dict],
+    spektron_results: Dict[int, Dict],
     baseline_results: Dict[str, Dict],
     ttt_results: Optional[Dict[int, Dict]] = None,
     title: str = "Sample Efficiency: Corn m5→mp6 Moisture",
@@ -115,7 +115,7 @@ def plot_sample_efficiency(
     """Plot R² vs number of transfer samples.
 
     Args:
-        spectral_fm_results: {n_samples: {"r2_mean": ..., "r2_std": ...}}
+        spektron_results: {n_samples: {"r2_mean": ..., "r2_std": ...}}
         baseline_results: {method: {"r2": ...}} at full n_transfer
         ttt_results: optional {n_samples: {"r2_mean": ..., "r2_std": ...}} for TTT+LoRA
     """
@@ -127,9 +127,9 @@ def plot_sample_efficiency(
     fig, ax = plt.subplots(1, 1, figsize=(5.5, 4))
 
     # Spektron curve
-    ns = sorted(spectral_fm_results.keys())
-    means = [spectral_fm_results[n]["r2_mean"] for n in ns]
-    stds = [spectral_fm_results[n].get("r2_std", 0) for n in ns]
+    ns = sorted(spektron_results.keys())
+    means = [spektron_results[n]["r2_mean"] for n in ns]
+    stds = [spektron_results[n].get("r2_std", 0) for n in ns]
     ax.errorbar(ns, means, yerr=stds, label="Spektron (LoRA)",
                 color=COLORS["Spektron"], marker=MARKERS["Spektron"],
                 capsize=3, linewidth=2)

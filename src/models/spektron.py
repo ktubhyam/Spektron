@@ -17,12 +17,13 @@ import copy
 from .embedding import WaveletEmbedding, RawSpectralEmbedding
 from .mamba import MambaBackbone
 from .dlinoss import DLinOSSBackbone
+from .backbones import CNN1DBackbone, S4DBackbone
 from .moe import MixtureOfExperts
 from .transformer import TransformerEncoder
 from .heads import VIBHead, ReconstructionHead, RegressionHead, FNOTransferHead
 
 
-class SpectralFM(nn.Module):
+class Spektron(nn.Module):
     """Spektron: Physics-Informed State Space Foundation Model.
 
     Supports both Mamba and D-LinOSS backbones via config.backbone.
@@ -64,6 +65,30 @@ class SpectralFM(nn.Module):
                 dropout=config.dlinoss.dropout,
                 layer_name=config.dlinoss.layer_name,
             )
+        elif config.backbone == "cnn1d":
+            self.backbone = CNN1DBackbone(
+                d_model=d,
+                n_layers=config.cnn1d.n_layers,
+                kernel_size=config.cnn1d.kernel_size,
+                expand=config.cnn1d.expand,
+                dropout=config.cnn1d.dropout,
+            )
+        elif config.backbone == "s4d":
+            self.backbone = S4DBackbone(
+                d_model=d,
+                n_layers=config.s4d.n_layers,
+                d_state=config.s4d.d_state,
+                dropout=config.s4d.dropout,
+            )
+        elif config.backbone == "transformer":
+            # Use Transformer as backbone (separate from the post-backbone transformer)
+            self.backbone = TransformerEncoder(
+                d_model=d,
+                n_layers=config.transformer.n_layers,
+                n_heads=config.transformer.n_heads,
+                d_ff=config.transformer.d_ff,
+                dropout=config.transformer.dropout,
+            )
         else:
             self.backbone = MambaBackbone(
                 d_model=d,
@@ -83,14 +108,19 @@ class SpectralFM(nn.Module):
             noise_std=config.moe.noise_std,
         )
 
-        # ========== Transformer ==========
-        self.transformer = TransformerEncoder(
-            d_model=d,
-            n_layers=config.transformer.n_layers,
-            n_heads=config.transformer.n_heads,
-            d_ff=config.transformer.d_ff,
-            dropout=config.transformer.dropout,
-        )
+        # ========== Post-backbone Transformer ==========
+        if config.backbone == "transformer":
+            # When backbone IS a transformer, skip the redundant post-backbone
+            # transformer — backbone already provides global attention
+            self.transformer = nn.Identity()
+        else:
+            self.transformer = TransformerEncoder(
+                d_model=d,
+                n_layers=config.transformer.n_layers,
+                n_heads=config.transformer.n_heads,
+                d_ff=config.transformer.d_ff,
+                dropout=config.transformer.dropout,
+            )
 
         # ========== VIB Disentanglement ==========
         self.vib = VIBHead(
@@ -101,17 +131,18 @@ class SpectralFM(nn.Module):
         )
 
         # ========== Task Heads ==========
-        # Pretraining: reconstruction
+        # Pretraining: reconstruction (with skip connection from embedding)
         if config.use_raw_embedding:
             # For raw embedding: reconstruct each spectral point
+            # d_input = 2*d because we concatenate embedding + backbone tokens
             self.reconstruction_head = PointwiseReconstructionHead(
-                d_input=d,
+                d_input=d * 2,
                 n_points=config.n_channels,
             )
         else:
             # For patched embedding: reconstruct each patch
             self.reconstruction_head = ReconstructionHead(
-                d_input=d,
+                d_input=d * 2,
                 n_patches=config.n_patches,
                 patch_size=config.patch_size,
             )
@@ -217,6 +248,11 @@ class SpectralFM(nn.Module):
         content_tokens = content_tokens * (1 - mask_expanded) + mask_tok * mask_expanded
         tokens = torch.cat([tokens[:, :2], content_tokens], dim=1)
 
+        # Save embedding-level tokens for skip connection to reconstruction head
+        embed_tokens = content_tokens.detach().clone()
+        # Re-attach to graph for gradient flow through mask_token
+        embed_tokens = content_tokens
+
         # 3. Run masked tokens through backbone → MoE → Transformer → VIB
         tokens = self.backbone(tokens)
         tokens, moe_loss = self.moe(tokens)
@@ -227,8 +263,11 @@ class SpectralFM(nn.Module):
 
         vib_out = self.vib(cls_token)
 
-        # 4. Reconstruct from the encoded (masked) representations
-        reconstruction = self.reconstruction_head(patch_tokens)
+        # 4. Reconstruct from concatenated [embedding, backbone] tokens
+        #    Skip connection lets the decoder access local spectral features
+        #    from the embedding alongside global context from the backbone
+        recon_input = torch.cat([embed_tokens, patch_tokens], dim=-1)
+        reconstruction = self.reconstruction_head(recon_input)
 
         return {
             "reconstruction": reconstruction,
@@ -396,13 +435,15 @@ class PointwiseReconstructionHead(nn.Module):
         return self.proj(x)
 
 
-class SpectralFMForPretraining(nn.Module):
+class SpektronForPretraining(nn.Module):
     """Wrapper for pretraining with masking strategy."""
 
-    def __init__(self, model: SpectralFM, config):
+    def __init__(self, model: Spektron, config):
         super().__init__()
         self.model = model
         self.config = config
+        self._current_step = 0
+        self._max_steps = config.pretrain.max_steps
 
     def create_mask(self, batch_size: int, seq_len: int,
                     mask_ratio: float = 0.20,
@@ -445,6 +486,22 @@ class SpectralFMForPretraining(nn.Module):
 
         return mask
 
+    def _get_current_mask_ratio(self) -> float:
+        """Progressive mask schedule: ramp from mask_ratio_start to mask_ratio.
+
+        Uses linear warmup over the first 40% of training, then holds at target.
+        """
+        start = getattr(self.config.pretrain, 'mask_ratio_start',
+                        self.config.pretrain.mask_ratio)
+        target = self.config.pretrain.mask_ratio
+        if start >= target:
+            return target
+        ramp_steps = int(self._max_steps * 0.4)
+        if self._current_step >= ramp_steps:
+            return target
+        progress = self._current_step / max(ramp_steps, 1)
+        return start + (target - start) * progress
+
     def forward(self, spectrum: torch.Tensor,
                 domain=None,
                 instrument_id: Optional[torch.Tensor] = None) -> Dict:
@@ -460,10 +517,13 @@ class SpectralFMForPretraining(nn.Module):
         if self.config.use_raw_embedding:
             mask_patch_size = max(mask_patch_size, self.config.patch_size)
 
+        # Progressive mask schedule
+        current_mask_ratio = self._get_current_mask_ratio()
+
         # Create mask (directly on device to avoid CPU→GPU sync)
         mask = self.create_mask(
             B, seq_len,
-            self.config.pretrain.mask_ratio,
+            current_mask_ratio,
             self.config.pretrain.mask_type,
             mask_patch_size,
             device=device,

@@ -20,9 +20,9 @@ import json
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.spectral_fm import SpectralFM, SpectralFMForPretraining
-from losses.losses import SpectralFMPretrainLoss, OTAlignmentLoss, CalibrationTransferLoss
-from config import SpectralFMConfig
+from models.spektron import Spektron, SpektronForPretraining
+from losses.losses import SpektronPretrainLoss, OTAlignmentLoss, CalibrationTransferLoss
+from config import SpektronConfig
 from utils.logging import ExperimentLogger
 
 
@@ -43,8 +43,8 @@ def _config_to_dict(config) -> dict:
 class PretrainTrainer:
     """Pretraining loop for Spektron."""
 
-    def __init__(self, model: SpectralFMForPretraining,
-                 config: SpectralFMConfig,
+    def __init__(self, model: SpektronForPretraining,
+                 config: SpektronConfig,
                  train_loader: DataLoader,
                  val_loader: Optional[DataLoader] = None,
                  use_wandb: bool = True,
@@ -57,7 +57,7 @@ class PretrainTrainer:
         self.device = config.device
 
         # Loss
-        self.criterion = SpectralFMPretrainLoss(config)
+        self.criterion = SpektronPretrainLoss(config)
         self.ot_loss = OTAlignmentLoss(config.ot.reg, config.ot.n_iter)
 
         # Optimizer — exclude LayerNorm, bias, and embeddings from weight decay
@@ -171,6 +171,11 @@ class PretrainTrainer:
                 [_dmap.get(d, 3) for d in domain],
                 dtype=torch.long, device=self.device,
             )
+
+        # Update progressive schedules (mask ratio, VIB beta)
+        inner = self.model.module if self.n_gpus > 1 else self.model
+        inner._current_step = self.step
+        self.criterion.vib_loss.update_beta(self.step, self.config.pretrain.max_steps)
 
         # Forward with AMP
         with torch.amp.autocast('cuda', dtype=self.amp_dtype, enabled=self.use_amp):
@@ -318,6 +323,8 @@ class PretrainTrainer:
                     self.history.append({"step": self.step, **losses})
 
                     # Log to W&B + JSON
+                    inner_model = self.model.module if self.n_gpus > 1 else self.model
+                    current_mask_ratio = inner_model._get_current_mask_ratio() if hasattr(inner_model, '_get_current_mask_ratio') else self.config.pretrain.mask_ratio
                     self.exp_logger.log({
                         "train/loss": losses["total"],
                         "train/msrp": losses.get("msrp", 0),
@@ -327,6 +334,8 @@ class PretrainTrainer:
                         "train/ot": losses.get("ot", 0),
                         "train/lr": lr,
                         "train/elapsed_sec": elapsed,
+                        "train/mask_ratio": current_mask_ratio,
+                        "train/vib_beta": self.criterion.vib_loss._current_beta,
                         "perf/samples_per_sec": samples_per_sec,
                         "perf/steps_per_sec": steps_per_sec,
                         "perf/eta_minutes": eta_sec / 60,
@@ -389,7 +398,7 @@ class PretrainTrainer:
 class FinetuneTrainer:
     """Fine-tuning for calibration transfer with LoRA."""
 
-    def __init__(self, model: SpectralFM, config: SpectralFMConfig,
+    def __init__(self, model: Spektron, config: SpektronConfig,
                  use_wandb: bool = True, run_name: Optional[str] = None,
                  wandb_entity: Optional[str] = None):
         self.model = model
@@ -517,7 +526,7 @@ class TTTEvaluator:
     adaptation on unlabeled target instrument spectra.
     """
 
-    def __init__(self, model: SpectralFM, config: SpectralFMConfig):
+    def __init__(self, model: Spektron, config: SpektronConfig):
         self.model = model
         self.config = config
         self.device = config.device

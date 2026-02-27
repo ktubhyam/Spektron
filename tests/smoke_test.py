@@ -40,8 +40,8 @@ def test_imports():
     print(f"  PyTorch {torch.__version__}, CUDA: {torch.cuda.is_available()}")
 
 def test_config():
-    from src.config import SpectralFMConfig
-    cfg = SpectralFMConfig()
+    from src.config import SpektronConfig
+    cfg = SpektronConfig()
     assert cfg.d_model == 256
     assert cfg.n_channels == 2048
     assert cfg.mamba.n_layers == 4
@@ -71,10 +71,10 @@ def test_data_tablet():
 
 def test_wavelet_embedding():
     import torch
-    from src.config import SpectralFMConfig
+    from src.config import SpektronConfig
     from src.models.embedding import WaveletEmbedding
     
-    cfg = SpectralFMConfig()
+    cfg = SpektronConfig()
     embed = WaveletEmbedding(
         d_model=cfg.d_model,
         n_channels=cfg.n_channels,
@@ -134,9 +134,9 @@ def test_vib_head():
 def test_reconstruction_head():
     import torch
     from src.models.heads import ReconstructionHead
-    from src.config import SpectralFMConfig
+    from src.config import SpektronConfig
     
-    cfg = SpectralFMConfig()
+    cfg = SpektronConfig()
     head = ReconstructionHead(d_input=256, n_patches=cfg.n_patches, patch_size=cfg.patch_size)
     x = torch.randn(2, cfg.n_patches, 256)
     y = head(x)
@@ -168,11 +168,11 @@ def test_losses():
 
 def test_full_forward():
     import torch
-    from src.config import SpectralFMConfig
-    from src.models.spectral_fm import SpectralFM
+    from src.config import SpektronConfig
+    from src.models.spektron import Spektron
     
-    cfg = SpectralFMConfig()
-    model = SpectralFM(cfg)
+    cfg = SpektronConfig()
+    model = Spektron(cfg)
     x = torch.randn(2, 2048)
     
     # Encode
@@ -183,11 +183,11 @@ def test_full_forward():
 
 def test_full_backward():
     import torch
-    from src.config import SpectralFMConfig
-    from src.models.spectral_fm import SpectralFM
+    from src.config import SpektronConfig
+    from src.models.spektron import Spektron
     
-    cfg = SpectralFMConfig()
-    model = SpectralFM(cfg)
+    cfg = SpektronConfig()
+    model = Spektron(cfg)
     x = torch.randn(2, 2048)
     
     enc = model.encode(x, domain="NIR")
@@ -202,12 +202,12 @@ def test_full_backward():
 
 def test_pretrain_forward():
     import torch
-    from src.config import SpectralFMConfig
-    from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+    from src.config import SpektronConfig
+    from src.models.spektron import Spektron, SpektronForPretraining
     
-    cfg = SpectralFMConfig()
-    model = SpectralFM(cfg)
-    pretrain_model = SpectralFMForPretraining(model, cfg)
+    cfg = SpektronConfig()
+    model = Spektron(cfg)
+    pretrain_model = SpektronForPretraining(model, cfg)
     
     x = torch.randn(2, 2048)
     output = pretrain_model(x, domain="NIR")
@@ -219,11 +219,11 @@ def test_pretrain_forward():
 
 def test_ttt():
     import torch
-    from src.config import SpectralFMConfig
-    from src.models.spectral_fm import SpectralFM
+    from src.config import SpektronConfig
+    from src.models.spektron import Spektron
 
-    cfg = SpectralFMConfig()
-    model = SpectralFM(cfg)
+    cfg = SpektronConfig()
+    model = Spektron(cfg)
 
     test_spectra = torch.randn(10, 2048)
     model.test_time_train(test_spectra, n_steps=2, lr=1e-4)
@@ -250,11 +250,11 @@ def test_lora_injection():
     """Test LoRA injection and forward pass."""
     import torch
     from src.config import get_light_config
-    from src.models.spectral_fm import SpectralFM
+    from src.models.spektron import Spektron
     from src.models.lora import inject_lora, get_lora_state_dict
 
     config = get_light_config()
-    model = SpectralFM(config)
+    model = Spektron(config)
     total_before = sum(p.numel() for p in model.parameters())
 
     inject_lora(model, ["q_proj", "k_proj", "v_proj"], rank=4, alpha=8)
@@ -394,10 +394,10 @@ def test_dlinoss_full_forward():
     """Test full Spektron with D-LinOSS backbone."""
     import torch
     from src.config import get_light_dlinoss_config
-    from src.models.spectral_fm import SpectralFM
+    from src.models.spektron import Spektron
 
     cfg = get_light_dlinoss_config()
-    model = SpectralFM(cfg)
+    model = Spektron(cfg)
     x = torch.randn(2, cfg.n_channels)  # (B, 256)
 
     enc = model.encode(x, domain="IR")
@@ -410,10 +410,10 @@ def test_dlinoss_full_backward():
     """Test full backward pass through D-LinOSS model."""
     import torch
     from src.config import get_light_dlinoss_config
-    from src.models.spectral_fm import SpectralFM
+    from src.models.spektron import Spektron
 
     cfg = get_light_dlinoss_config()
-    model = SpectralFM(cfg)
+    model = Spektron(cfg)
     x = torch.randn(2, cfg.n_channels)
 
     enc = model.encode(x, domain="RAMAN")
@@ -430,11 +430,11 @@ def test_dlinoss_pretrain():
     """Test D-LinOSS pretraining forward pass."""
     import torch
     from src.config import get_light_dlinoss_config
-    from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+    from src.models.spektron import Spektron, SpektronForPretraining
 
     cfg = get_light_dlinoss_config()
-    model = SpectralFM(cfg)
-    pretrain = SpectralFMForPretraining(model, cfg)
+    model = Spektron(cfg)
+    pretrain = SpektronForPretraining(model, cfg)
 
     x = torch.randn(2, cfg.n_channels)
     output = pretrain(x, domain="IR")
@@ -473,13 +473,13 @@ def test_mask_scaling():
     """Test that raw mode auto-scales mask_patch_size."""
     import torch
     from src.config import get_light_dlinoss_config
-    from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+    from src.models.spektron import Spektron, SpektronForPretraining
 
     cfg = get_light_dlinoss_config()
     assert cfg.pretrain.mask_patch_size == 3, "Default should be 3"
 
-    model = SpectralFM(cfg)
-    pretrain = SpectralFMForPretraining(model, cfg)
+    model = Spektron(cfg)
+    pretrain = SpektronForPretraining(model, cfg)
 
     x = torch.randn(2, cfg.n_channels)
     output = pretrain(x, domain="IR")
@@ -509,15 +509,15 @@ def test_mask_scaling():
 
 def test_n_patches_computed():
     """Test that n_patches is correctly computed from n_channels/patch_size/stride."""
-    from src.config import SpectralFMConfig, get_light_dlinoss_config
+    from src.config import SpektronConfig, get_light_dlinoss_config
 
-    cfg = SpectralFMConfig()
+    cfg = SpektronConfig()
     assert cfg.n_patches == 127, f"Default: expected 127, got {cfg.n_patches}"
 
     cfg2 = get_light_dlinoss_config()
     expected = (256 - 32) // 16 + 1  # = 15
     assert cfg2.n_patches == expected, f"Light D-LinOSS: expected {expected}, got {cfg2.n_patches}"
-    print(f"    n_patches computed: default={SpectralFMConfig().n_patches}, light_dlinoss={cfg2.n_patches}")
+    print(f"    n_patches computed: default={SpektronConfig().n_patches}, light_dlinoss={cfg2.n_patches}")
 
 
 if __name__ == "__main__":

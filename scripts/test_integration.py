@@ -58,18 +58,18 @@ def main():
     print("\n[1] Model Build")
 
     def test_model_build():
-        from src.config import SpectralFMConfig
-        from src.models.spectral_fm import SpectralFM
-        config = SpectralFMConfig()
-        model = SpectralFM(config)
+        from src.config import SpektronConfig
+        from src.models.spektron import Spektron
+        config = SpektronConfig()
+        model = Spektron(config)
         assert sum(p.numel() for p in model.parameters()) > 1_000_000
     test("Build Spektron", test_model_build)
 
     def test_lora_inject():
-        from src.config import SpectralFMConfig
-        from src.models.spectral_fm import SpectralFM
+        from src.config import SpektronConfig
+        from src.models.spektron import Spektron
         from src.models.lora import inject_lora
-        model = SpectralFM(SpectralFMConfig())
+        model = Spektron(SpektronConfig())
         before = sum(p.numel() for p in model.parameters())
         inject_lora(model, ["q_proj", "k_proj", "v_proj"], rank=8, alpha=16)
         after = sum(p.numel() for p in model.parameters())
@@ -106,10 +106,10 @@ def main():
     # ── 4. Forward Passes ──
     print("\n[4] Forward Passes")
 
-    from src.config import SpectralFMConfig
-    from src.models.spectral_fm import SpectralFM
-    config = SpectralFMConfig()
-    model = SpectralFM(config)
+    from src.config import SpektronConfig
+    from src.models.spektron import Spektron
+    config = SpektronConfig()
+    model = Spektron(config)
 
     def test_encode():
         x = torch.randn(2, 2048)
@@ -153,12 +153,12 @@ def main():
 
     def test_finetune():
         from src.models.lora import inject_lora
-        from scripts.run_finetune import finetune_spectral_fm
-        ft_model = SpectralFM(config)
+        from scripts.run_finetune import finetune_spektron
+        ft_model = Spektron(config)
         inject_lora(ft_model, ["q_proj", "k_proj", "v_proj"], rank=4, alpha=8)
         X = torch.randn(8, 2048)
         y = torch.randn(8, 1)
-        trained, history = finetune_spectral_fm(
+        trained, history = finetune_spektron(
             ft_model, X, y, device="cpu", n_epochs=2, lr=1e-3, batch_size=4)
         assert len(history) > 0
     test("Fine-tune (2 epochs)", test_finetune)

@@ -32,10 +32,10 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from src.config import SpectralFMConfig, get_dlinoss_config, get_light_dlinoss_config
-from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+from src.config import SpektronConfig, get_dlinoss_config, get_light_dlinoss_config
+from src.models.spektron import Spektron, SpektronForPretraining
 from src.data.qm9s import build_qm9s_loaders
-from src.losses.losses import SpectralFMPretrainLoss, OTAlignmentLoss
+from src.losses.losses import SpektronPretrainLoss, OTAlignmentLoss
 from src.training.trainer import PretrainTrainer
 
 logging.basicConfig(
@@ -45,7 +45,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def build_qm9s_config(args) -> SpectralFMConfig:
+def build_qm9s_config(args) -> SpektronConfig:
     """Build configuration for QM9S pretraining."""
     if args.light:
         config = get_light_dlinoss_config()
@@ -147,8 +147,8 @@ def main():
              f"Test: {len(test_loader.dataset)}")
 
     # Build model
-    model = SpectralFM(config)
-    pretrain_model = SpectralFMForPretraining(model, config)
+    model = Spektron(config)
+    pretrain_model = SpektronForPretraining(model, config)
 
     # Create trainer
     run_name = f"qm9s_dlinoss_{config.dlinoss.d_state}osc_{int(time.time())}"

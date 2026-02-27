@@ -1,118 +1,140 @@
 # Spektron
 
-**Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning**
+**Oscillatory State Space Models for Vibrational Spectroscopy: Benchmarking, Cross-Spectral Prediction, and Interpretability**
 
-A self-supervised foundation model for vibrational spectroscopy (NIR, IR, Raman) that learns to disentangle chemical content from instrument-specific artifacts. Spektron combines a **D-LinOSS backbone** (damped linear oscillatory state-space model) with Sinkhorn-based optimal transport domain adaptation, a variational information bottleneck, and physics-informed regularization to achieve calibration transfer across spectrometers using 10 or fewer labeled samples — where classical methods require 30-60.
+An honest empirical study evaluating whether oscillatory SSMs (D-LinOSS) bring unique advantages to vibrational spectroscopy. Includes the first SSM evaluation for IR/Raman spectroscopy, a novel cross-spectral prediction task (IR to Raman and vice versa), and transfer function interpretability analysis unique to SSM architectures.
 
 > **Author:** Tubhyam Karthikeyan (ICT Mumbai / InvyrAI)
 >
-> **Target Journal:** Analytical Chemistry (ACS, IF 7.4)
+> **Target Journal:** Digital Discovery (RSC)
 
-**[Project Page](https://tubhyam.dev/projects/spektron)** | **[Research Paper](https://tubhyam.dev/research/hybrid-ssa-spectroscopy)** | **[Blog Post](https://tubhyam.dev/blog/spectral-inverse-problem)**
+**[Project Page](https://tubhyam.dev/projects/spektron)** | **[Blog](https://tubhyam.dev/blog/spectral-inverse-problem)**
 
 ---
 
-## The Problem
+## Key Claims
 
-Calibration transfer in spectroscopy has relied on the same approaches for 30+ years: measure 10-60 transfer samples on both instruments, then apply PDS/DS/SBC correction. At $50-200 per reference analysis, this is expensive and must be repeated for every new instrument. After four decades, the field still lacks a scalable solution.
+1. **First SSM evaluation for vibrational spectroscopy** — zero prior work applies SSMs to IR/Raman
+2. **Novel cross-spectral prediction task** — predicting Raman from IR (and vice versa). No prior work exists
+3. **Function-space argument** — D-LinOSS dynamics (damped sinusoids) are a natural basis for vibrational spectra
+4. **Transfer function interpretability** — H(z) analysis reveals what spectral filters each D-LinOSS layer has learned. Unique to SSMs
 
-## Our Approach
+## Experiments
 
-Spektron proposes a **fifth strategy** for calibration transfer — after instrument matching, global modeling, model updating, and sensor selection (Workman & Mark, 2017): learn instrument-invariant chemical representations from a large pretraining corpus, then adapt with minimal transfer data.
+| Experiment | Script | Description |
+|-----------|--------|-------------|
+| **E1: Architecture Benchmark** | `experiments/e1_benchmark.py` | D-LinOSS vs Mamba vs Transformer vs CNN vs S4D, param-matched at ~2M backbone params, masked spectral reconstruction on QM9S |
+| **E2: Cross-Spectral Prediction** | `experiments/e2_cross_spectral.py` | Predict Raman from IR and vice versa. Includes identity-copy baseline. 5 metrics: MSE, cosine similarity, peak recall, intensity correlation, SID |
+| **E3: Transfer Function Analysis** | `experiments/e3_transfer_function.py` | H(z) filter bank visualization, pole-zero plots, per-layer frequency coverage, trained vs random comparison |
+| **E4: Calibration Transfer** | `experiments/e4_calibration_transfer.py` | Fine-tune on Corn (80x3x700) + Tablet (655x2x650), compare against PDS, SBC, DS, CCA, di-PLS baselines |
 
-- **Standard-free (TTT):** Test-time training on unlabeled spectra from the new instrument — no paired standards needed
-- **Sample-efficient (LoRA):** Fine-tuning with as few as 5-10 transfer samples
-- **Target:** 10 transfer samples outperforms classical methods using 50
+Run all experiments:
+```bash
+python experiments/run_all.py --h5-path data/raw/qm9s/qm9s_processed.h5
+```
 
 ## Architecture
 
 ```
 Spectrum (B, 2048)
-  -> RawSpectralEmbedding   Conv1d patching + wavenumber PE + [CLS] + [DOMAIN]
-  -> DLinOSSBackbone         4 damped linear oscillatory SSM blocks, O(n) complexity
-  -> MixtureOfExperts        4 experts, top-2 gating, optional KAN activations
-  -> TransformerEncoder      2 blocks, 8 heads, global reasoning
+  -> RawSpectralEmbedding    Conv1d + wavenumber PE + [CLS] + [DOMAIN]
+  -> Backbone                D-LinOSS (bidirectional) | Mamba | Transformer | CNN1D | S4D
+  -> MixtureOfExperts        4 experts, top-2 gating
+  -> TransformerEncoder      2 blocks (skipped when backbone=Transformer)
   -> VIBHead                 disentangle z_chem (128d) + z_inst (64d)
-  -> Heads                   Reconstruction | Regression | FNO Transfer
+  -> Heads                   Reconstruction | CrossSpectral | Regression | FNO Transfer
 ```
 
-**Design rationale:**
-- **D-LinOSS (O(n))** — damped linear oscillatory state-space model with 2nd-order dynamics matching molecular vibrations (damped harmonic oscillators), IMEX symplectic discretization, and proven universal approximation (Theorem 3.3, Rusch & Rus 2025)
-- **Transformer (O(n^2))** — global self-attention for expressiveness where it matters
-- **VIB disentanglement** — variational information bottleneck with gradient reversal splits the latent space into transferable chemistry (z_chem) and discardable instrument signature (z_inst)
-- **Optimal transport** — Sinkhorn divergence aligns latent distributions across instruments
-- **Physics-informed losses** — Beer-Lambert linearity, spectral smoothness, non-negativity, peak shape constraints
+### Param-Matched Backbones (E1 Benchmark)
 
-The model also supports a legacy **Mamba backbone** mode (selective SSM) via `config.backbone = "mamba"`, but D-LinOSS is the default and recommended backbone due to its physics-aligned oscillatory dynamics.
+| Architecture | Backbone Params | Key Properties |
+|-------------|:-:|---|
+| D-LinOSS | 2.1M | 2nd-order oscillatory SSM, O(n), bidirectional (4+4 layers) |
+| Mamba | 1.8M | 1st-order selective SSM, O(n), input-dependent |
+| Transformer | 2.1M | Self-attention, O(n^2), 4 layers |
+| 1D CNN | 2.1M | Local convolutions, FIR filters, 2 layers |
+| S4D (ablation) | 1.1M | 1st-order diagonal SSM, no oscillatory structure |
 
 ## Project Structure
 
 ```
 Spektron/
-├── run.py                              # Entry point (pretrain / finetune / evaluate / ttt)
-├── src/
-│   ├── config.py                       # All hyperparameters (dataclass-based)
-│   ├── models/
-│   │   ├── embedding.py                # WaveletEmbedding + RawSpectralEmbedding + WavenumberPE
-│   │   ├── dlinoss.py                  # D-LinOSS backbone (damped oscillatory SSM)
-│   │   ├── linoss/                     # LinOSS core: layers.py (LinOSSBlock, DampedLayer), scan.py
-│   │   ├── mamba.py                    # Legacy Mamba backbone (selective SSM, pure PyTorch)
-│   │   ├── moe.py                      # Mixture of Experts + KAN layers
-│   │   ├── transformer.py              # Lightweight TransformerEncoder
-│   │   ├── heads.py                    # VIB, Reconstruction, Regression, FNO heads + GradientReversal
-│   │   ├── lora.py                     # LoRA injection for fine-tuning
-│   │   └── spectral_fm.py              # Full model assembly (supports Mamba + D-LinOSS) + TTT
-│   ├── losses/
-│   │   └── losses.py                   # MSRP, contrastive, physics, OT, VIB, MoE losses
-│   ├── training/
-│   │   └── trainer.py                  # Pretrain + finetune + TTT training loops
-│   ├── evaluation/
-│   │   ├── metrics.py                  # R2, RMSEP, RPD, bias, conformal prediction
-│   │   ├── baselines.py               # PDS, SBC, DS classical baselines
-│   │   └── visualization.py           # Plotting utilities
-│   ├── data/
-│   │   ├── datasets.py                 # Data loading, augmentation, preprocessing
-│   │   ├── qm9s.py                     # QM9S dataset pipeline
-│   │   ├── build_pretrain_corpus.py     # Download + preprocess pretraining data
-│   │   ├── corpus_downloader.py        # Multi-source corpus downloaders
-│   │   └── pretraining_pipeline.py      # Pretraining dataset class
-│   └── utils/
-│       └── logging.py                  # Dual W&B + JSONL experiment logger
-├── scripts/
-│   ├── run_baselines.py                # Run classical baseline comparison
-│   └── run_finetune_test.py            # Fine-tuning validation script
-├── data/
-│   ├── raw/                            # Original .mat files
-│   └── processed/                      # Preprocessed .npy arrays
-│       ├── corn/                       # 80 samples x 3 instruments x 700 channels
-│       └── tablet/                     # 655 samples x 2 instruments x 650 channels
-├── experiments/                        # Experiment results (JSON)
-├── checkpoints/                        # Saved model weights
-├── figures/                            # Generated plots
-├── paper/                              # Research notes and theory documents
+├── CLAUDE.md                        # Claude Code instructions
+├── README.md
 ├── requirements.txt
-├── PROJECT_STATUS.md                   # Current state and known issues
-└── IMPLEMENTATION_PLAN.md              # Detailed task breakdown
+├── run.py                           # Entry point (pretrain/finetune/evaluate/ttt)
+├── src/
+│   ├── config.py                    # All hyperparameters (dataclass-based)
+│   ├── models/
+│   │   ├── spektron.py              # Full model assembly (Spektron + SpektronForPretraining)
+│   │   ├── dlinoss.py               # D-LinOSS bidirectional backbone
+│   │   ├── backbones.py             # CNN1D + S4D backbone implementations
+│   │   ├── mamba.py                 # Mamba backbone (selective SSM)
+│   │   ├── transformer.py           # Transformer backbone
+│   │   ├── embedding.py             # WaveletEmbedding + RawSpectralEmbedding + WavenumberPE
+│   │   ├── heads.py                 # VIB, Reconstruction, CrossSpectral, Regression, FNO heads
+│   │   ├── moe.py                   # Mixture of Experts + KAN layers
+│   │   ├── lora.py                  # LoRA injection for fine-tuning
+│   │   └── linoss/                  # Vendored D-LinOSS core (DO NOT MODIFY)
+│   │       ├── layers.py            # LinOSSBlock, DampedLayer, GLU
+│   │       └── scan.py              # Parallel associative scan
+│   ├── losses/
+│   │   └── losses.py                # MSRP, contrastive, physics, OT, VIB losses
+│   ├── training/
+│   │   └── trainer.py               # Pretrain + finetune + TTT training loops
+│   ├── evaluation/
+│   │   ├── metrics.py               # R2, RMSEP, RPD, bias
+│   │   ├── baselines.py             # PDS, SBC, DS, CCA, di-PLS, PLS
+│   │   ├── cross_spectral_metrics.py # MSE, cosine, peak recall, SID
+│   │   └── visualization.py         # Plotting utilities
+│   ├── data/
+│   │   ├── qm9s.py                  # QM9S HDF5 loading + preprocessing
+│   │   ├── cross_spectral.py        # Paired IR/Raman dataset for E2
+│   │   └── datasets.py              # Corn/Tablet datasets + augmentation
+│   ├── analysis/
+│   │   └── transfer_function.py     # H(z) computation + visualization for E3
+│   └── utils/
+│       └── logging.py               # Experiment logger
+├── experiments/
+│   ├── e1_benchmark.py              # E1: Architecture benchmark
+│   ├── e2_cross_spectral.py         # E2: Cross-spectral prediction
+│   ├── e3_transfer_function.py      # E3: Transfer function analysis
+│   ├── e4_calibration_transfer.py   # E4: Calibration transfer
+│   ├── pretrain_qm9s.py            # Pretraining entry point
+│   ├── run_all.py                   # Master experiment runner
+│   ├── results/                     # JSON results
+│   └── archive/                     # Old experiment scripts
+├── data/
+│   ├── raw/qm9s/                    # QM9S HDF5 (130K molecules)
+│   ├── processed/corn/              # 80 x 3 instruments x 700ch
+│   └── processed/tablet/            # 655 x 2 instruments x 650ch
+├── figures/                         # Generated plots (E1-E4)
+├── checkpoints/                     # Saved model weights
+├── logs/
+├── paper/
+│   ├── sections/                    # LaTeX/Markdown sections
+│   └── archive/                     # Old planning docs
+├── scripts/                         # Utility scripts
+└── tests/
+    └── smoke_test.py
 ```
 
-## Datasets
+## Dataset
 
-### Evaluation (preprocessed, included)
+**QM9S** — 129,817 molecules with DFT-computed spectra (B3LYP/def2-TZVP):
 
-| Dataset | Samples | Instruments | Channels | Properties |
-|---------|---------|-------------|----------|------------|
-| **Corn** | 80 | 3 (m5, mp5, mp6) | 700 | moisture, oil, protein, starch |
-| **Tablet** | 655 | 2 | 650 | active ingredient, weight, hardness |
+| Property | Value |
+|----------|-------|
+| Molecules | 129,817 |
+| IR spectra | 103,991 |
+| Raman spectra | 129,817 |
+| Spectral range | 500-4000 cm^-1 (resampled to 2048 points) |
+| Split | 85.5% train / 4.5% val / 10% test |
+| Non-centrosymmetric | 99.93% (mutual exclusion barely applies) |
 
-### Pretraining Corpus
-
-| Source | Spectra | Modality |
-|--------|---------|----------|
-| QM9S (DFT-computed) | ~222K | IR, Raman |
-| RRUFF | ~9.9K | Raman |
-| OpenSpecy | ~5.4K | Raman, FTIR |
-| ChEMBL IR-Raman | ~220K | IR, Raman (ready, not yet downloaded) |
-| USPTO-Spectra | ~177K | Mixed (ready, not yet downloaded) |
+**Calibration transfer datasets:**
+- **Corn:** 80 samples x 3 NIR instruments (m5, mp5, mp6) x 700 channels
+- **Tablet:** 655 samples x 2 instruments x 650 channels
 
 ## Installation
 
@@ -127,63 +149,32 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-# Smoke test -- verify forward/backward pass
+# Smoke test — verify all components
 python run.py --mode smoke_test
 
-# Classical baselines on corn dataset
-python scripts/run_baselines.py
+# Pretrain on QM9S (D-LinOSS backbone)
+python experiments/pretrain_qm9s.py --h5-path data/raw/qm9s/qm9s_processed.h5
 
-# Pretrain on QM9S spectral corpus (D-LinOSS backbone)
-python run.py --mode pretrain
+# Run architecture benchmark (E1)
+python experiments/e1_benchmark.py --h5-path data/raw/qm9s/qm9s_processed.h5
 
-# LoRA fine-tune for calibration transfer
-python run.py --mode finetune --checkpoint checkpoints/pretrain_best.pt
+# Run cross-spectral prediction (E2)
+python experiments/e2_cross_spectral.py --h5-path data/raw/qm9s/qm9s_processed.h5
 
-# Standard-free transfer via test-time training
-python run.py --mode ttt --checkpoint checkpoints/pretrain_best.pt
+# Run all experiments
+python experiments/run_all.py --h5-path data/raw/qm9s/qm9s_processed.h5
+
+# Quick test (CPU, fewer steps)
+python experiments/run_all.py --h5-path ... --quick
 ```
 
-## Baselines
+## Compute
 
-| Method | Type | Description |
-|--------|------|-------------|
-| PDS | Classical | Piecewise Direct Standardization (Wang, Veltkamp & Kowalski, 1991) |
-| DS | Classical | Direct Standardization |
-| SBC | Classical | Slope/Bias Correction |
-| PLS | Classical | Partial Least Squares regression |
-| Spektron (ours) | Foundation model | Self-supervised pretraining + LoRA transfer + TTT |
-
-## Benchmark Targets
-
-| Method | R2 (corn moisture) | Transfer Samples |
-|--------|-------------------|-----------------|
-| PDS | ~0.55 | 30 |
-| DS | ~0.69 | 30 |
-| LoRA-CT (literature) | 0.952 | 50 |
-| **Spektron (target)** | **>0.96** | **10** |
-
-## Pretraining Objectives
-
-| Loss | Purpose |
-|------|---------|
-| **MSRP** | Masked Spectrum Reconstruction -- contiguous block masking, learn spectral structure |
-| **Contrastive** | BYOL-style instrument-invariance between augmented views of same spectrum |
-| **Denoising** | Reconstruct clean spectrum from synthetically corrupted input |
-| **Physics** | Beer-Lambert linearity, smoothness, non-negativity, peak shape constraints |
-| **OT Alignment** | Sinkhorn-based Wasserstein distance across instrument latent distributions |
-| **VIB** | Variational Information Bottleneck -- disentangle z_chem from z_inst via gradient reversal |
-
-## Transfer Methods
-
-| Method | Transfer Samples | Description |
-|--------|-----------------|-------------|
-| **TTT** | 0 (unlabeled only) | Run K steps of MSRP self-supervision on unlabeled target spectra |
-| **LoRA** | 5-10 (labeled) | Low-rank adaptation of transformer attention layers |
-| **FNO** | N/A | Fourier Neural Operator head for resolution-independent spectral mapping |
-
-## Current Status
-
-Training is actively running on Vast.ai (2x RTX 5060 Ti 16GB) at step ~5300/50000. The D-LinOSS backbone is producing stable training with bfloat16 AMP, MSRP loss 0.08-0.13, and zero NaN/Inf errors. 20 critical bug fixes have been applied and committed. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for details.
+Training runs on 2x RTX 5060 Ti 16GB via Vast.ai:
+- batch_size=16 (8/GPU), grad_accumulation=4, effective batch 64
+- AMP bfloat16, D-LinOSS forced to float32 (prevents overflow in GLU)
+- ~39 samples/sec, ~23 hours for 50K steps
+- Total compute budget: ~106 GPU-hours
 
 ## License
 
@@ -193,13 +184,10 @@ MIT License. See [LICENSE](LICENSE).
 
 ```bibtex
 @article{karthikeyan2026spektron,
-  title={Toward Standard-Free Calibration Transfer in Vibrational Spectroscopy via Self-Supervised Learning},
+  title={Oscillatory State Space Models for Vibrational Spectroscopy:
+         Benchmarking, Cross-Spectral Prediction, and Interpretability},
   author={Karthikeyan, Tubhyam},
-  journal={Analytical Chemistry},
+  journal={Digital Discovery},
   year={2026}
 }
 ```
-
----
-
-*Under active development. Targeting publication in Analytical Chemistry (ACS).*

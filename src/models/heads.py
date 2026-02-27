@@ -312,6 +312,66 @@ class RegressionHead(nn.Module):
         return self.net(x)
 
 
+class CrossSpectralHead(nn.Module):
+    """Cross-spectral prediction head for IR <-> Raman translation.
+
+    Takes backbone output tokens from encoding the SOURCE spectrum and
+    predicts the full TARGET spectrum. Architecture:
+        1. Extract CLS token (global representation)
+        2. Mean-pool content tokens (local spectral features)
+        3. Concatenate CLS + mean-pooled -> (B, 2*d_model)
+        4. MLP: Linear(2*d_model, d_model) -> GELU -> Linear(d_model, n_channels)
+
+    This design captures both the global molecular identity (via CLS)
+    and the fine-grained spectral structure (via mean pooling).
+    """
+
+    def __init__(
+        self,
+        d_model: int = 256,
+        n_channels: int = 2048,
+        dropout: float = 0.1,
+    ) -> None:
+        """Initialize the cross-spectral prediction head.
+
+        Args:
+            d_model: Backbone hidden dimension.
+            n_channels: Number of output spectral points (target spectrum length).
+            dropout: Dropout probability applied between MLP layers.
+        """
+        super().__init__()
+        self.d_model = d_model
+        self.n_channels = n_channels
+
+        self.mlp = nn.Sequential(
+            nn.Linear(2 * d_model, d_model),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, n_channels),
+        )
+
+    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
+        """Predict target spectrum from backbone output tokens.
+
+        Args:
+            tokens: (B, L, d_model) full token sequence from the backbone.
+                Assumes tokens[:, 0] is the CLS token and tokens[:, 2:] are
+                the content tokens (positions 0=CLS, 1=DOMAIN, 2+=content),
+                following Spektron.encode() conventions.
+
+        Returns:
+            predicted: (B, n_channels) predicted target spectrum.
+        """
+        cls_token = tokens[:, 0]           # (B, d_model)
+        content_tokens = tokens[:, 2:]     # (B, N, d_model) — skip CLS + DOMAIN
+        mean_pooled = content_tokens.mean(dim=1)  # (B, d_model)
+
+        combined = torch.cat([cls_token, mean_pooled], dim=-1)  # (B, 2*d_model)
+        predicted = self.mlp(combined)     # (B, n_channels)
+
+        return predicted
+
+
 class ReconstructionHead(nn.Module):
     """Spectrum reconstruction head for MSRP pretraining."""
 

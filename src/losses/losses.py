@@ -299,12 +299,35 @@ class VIBLoss(nn.Module):
 
     Ensures z_chem captures chemistry (predicts targets, not instruments)
     and z_inst captures instrument info (predicts instruments, not targets).
+
+    Supports beta annealing: start with high beta (diverse representations)
+    and decay to low beta (tight bottleneck) over training.
     """
 
-    def __init__(self, beta: float = 1e-3, disentangle_weight: float = 0.1):
+    def __init__(self, beta: float = 1e-3, disentangle_weight: float = 0.1,
+                 beta_start: float = None):
         super().__init__()
         self.beta = beta
+        self.beta_start = beta_start  # if None, no annealing
         self.disentangle_weight = disentangle_weight
+        self._current_beta = beta_start if beta_start is not None else beta
+
+    def update_beta(self, step: int, max_steps: int):
+        """Update beta based on cosine annealing schedule.
+
+        Decays from beta_start to beta over the first 60% of training.
+        """
+        if self.beta_start is None or self.beta_start <= self.beta:
+            self._current_beta = self.beta
+            return
+        anneal_steps = int(max_steps * 0.6)
+        if step >= anneal_steps:
+            self._current_beta = self.beta
+        else:
+            progress = step / max(anneal_steps, 1)
+            # Cosine decay from beta_start to beta
+            cos_decay = 0.5 * (1 + math.cos(math.pi * progress))
+            self._current_beta = self.beta + (self.beta_start - self.beta) * cos_decay
 
     def forward(self, vib_out: Dict, instrument_id: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
@@ -313,10 +336,11 @@ class VIBLoss(nn.Module):
             instrument_id: (B,) ground truth instrument IDs
         """
         losses = {}
+        beta = self._current_beta
 
         # KL divergence (information bottleneck)
-        losses["kl_chem"] = self.beta * vib_out["kl_chem"]
-        losses["kl_inst"] = self.beta * vib_out["kl_inst"]
+        losses["kl_chem"] = beta * vib_out["kl_chem"]
+        losses["kl_inst"] = beta * vib_out["kl_inst"]
 
         # z_inst should predict instrument
         losses["inst_cls"] = F.cross_entropy(
@@ -338,7 +362,7 @@ class VIBLoss(nn.Module):
 # Combined Pretraining Loss
 # ============================================================
 
-class SpectralFMPretrainLoss(nn.Module):
+class SpektronPretrainLoss(nn.Module):
     """Combined pretraining loss with all components."""
 
     def __init__(self, config):
@@ -356,7 +380,10 @@ class SpectralFMPretrainLoss(nn.Module):
             config.physics.peak_shape_weight,
             config.physics.smoothness_kernel_size,
         )
-        self.vib_loss = VIBLoss(config.vib.beta, config.vib.disentangle_weight)
+        self.vib_loss = VIBLoss(
+            config.vib.beta, config.vib.disentangle_weight,
+            beta_start=getattr(config.vib, 'beta_start', None),
+        )
 
         # Weights
         self.w_msrp = pc.msrp_weight
@@ -369,7 +396,7 @@ class SpectralFMPretrainLoss(nn.Module):
         """Compute all pretraining losses.
 
         Args:
-            model_output: from SpectralFMForPretraining.forward()
+            model_output: from SpektronForPretraining.forward()
             instrument_id: (B,) instrument IDs
         """
         losses = {}

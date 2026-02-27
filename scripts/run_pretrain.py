@@ -20,8 +20,8 @@ import torch
 from pathlib import Path
 from datetime import datetime
 
-from src.config import SpectralFMConfig, get_light_config
-from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+from src.config import SpektronConfig, get_light_config
+from src.models.spektron import Spektron, SpektronForPretraining
 from src.data.datasets import PretrainHDF5Dataset
 from src.training.trainer import PretrainTrainer
 
@@ -85,7 +85,7 @@ def main():
         print("Using lightweight model configuration")
         cfg = get_light_config()
     else:
-        cfg = SpectralFMConfig()
+        cfg = SpektronConfig()
 
     cfg.device = device
     cfg.pretrain.batch_size = args.batch_size
@@ -144,8 +144,8 @@ def main():
 
     # Create model
     print("\nCreating model...")
-    base_model = SpectralFM(cfg)
-    model = SpectralFMForPretraining(base_model, cfg)
+    base_model = Spektron(cfg)
+    model = SpektronForPretraining(base_model, cfg)
     n_params = sum(p.numel() for p in model.parameters())
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Total parameters: {n_params:,}")

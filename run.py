@@ -21,14 +21,14 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.config import SpectralFMConfig
-from src.models.spectral_fm import SpectralFM, SpectralFMForPretraining
+from src.config import SpektronConfig
+from src.models.spektron import Spektron, SpektronForPretraining
 from src.data.datasets import (
     SpectralPreprocessor, SpectralAugmentor,
     CornDataset, TabletDataset, CalibrationTransferDataset,
     build_pretrain_loader,
 )
-from src.losses.losses import SpectralFMPretrainLoss
+from src.losses.losses import SpektronPretrainLoss
 from src.training.trainer import PretrainTrainer, FinetuneTrainer, TTTEvaluator
 from src.evaluation.metrics import (
     compute_metrics, run_baseline_comparison, PLSBaseline,
@@ -43,7 +43,7 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
 
 
-def verify_data(config: SpectralFMConfig):
+def verify_data(config: SpektronConfig):
     """Verify all data files exist."""
     data_dir = Path(config.data_dir)
     required = [
@@ -65,13 +65,13 @@ def verify_data(config: SpectralFMConfig):
     return True
 
 
-def build_model(config: SpectralFMConfig) -> SpectralFM:
+def build_model(config: SpektronConfig) -> Spektron:
     """Build Spektron model."""
-    model = SpectralFM(config)
+    model = Spektron(config)
     return model
 
 
-def run_pretrain(config: SpectralFMConfig):
+def run_pretrain(config: SpektronConfig):
     """Run pretraining."""
     print("=" * 60)
     print("PHASE 1: PRETRAINING")
@@ -79,7 +79,7 @@ def run_pretrain(config: SpectralFMConfig):
 
     # Build model
     model = build_model(config)
-    pretrain_model = SpectralFMForPretraining(model, config)
+    pretrain_model = SpektronForPretraining(model, config)
 
     # Build dataloaders
     train_loader = build_pretrain_loader(
@@ -108,7 +108,7 @@ def run_pretrain(config: SpectralFMConfig):
     return model
 
 
-def run_finetune(config: SpectralFMConfig, model: SpectralFM = None,
+def run_finetune(config: SpektronConfig, model: Spektron = None,
                  checkpoint: str = None):
     """Run fine-tuning for calibration transfer."""
     print("=" * 60)
@@ -224,7 +224,7 @@ def run_finetune(config: SpectralFMConfig, model: SpectralFM = None,
     return results
 
 
-def run_ttt(config: SpectralFMConfig, checkpoint: str = None):
+def run_ttt(config: SpektronConfig, checkpoint: str = None):
     """Run Test-Time Training evaluation."""
     print("=" * 60)
     print("PHASE 3: TEST-TIME TRAINING (Zero-Shot)")
@@ -267,7 +267,7 @@ def run_ttt(config: SpectralFMConfig, checkpoint: str = None):
     return results
 
 
-def run_baselines(config: SpectralFMConfig):
+def run_baselines(config: SpektronConfig):
     """Run classical baseline methods."""
     print("=" * 60)
     print("BASELINES: Classical Methods")
@@ -320,7 +320,7 @@ def main():
     args = parser.parse_args()
 
     # Config
-    config = SpectralFMConfig()
+    config = SpektronConfig()
     if args.device:
         config.device = args.device
     if args.max_steps:

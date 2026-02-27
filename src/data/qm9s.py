@@ -240,6 +240,65 @@ def preprocess_qm9s_to_hdf5(data_dir: str, output_path: str = None,
 # Dataset classes (load from HDF5)
 # ============================================================
 
+class SpectralAugmentor:
+    """On-the-fly spectral augmentation for pretraining.
+
+    Applies random augmentations to improve generalization:
+    1. Gaussian noise injection
+    2. Baseline drift (low-frequency polynomial)
+    3. Intensity scaling
+    4. Small wavelength shift (circular)
+    """
+
+    def __init__(self, noise_std: float = 0.01,
+                 drift_scale: float = 0.005,
+                 intensity_range: Tuple[float, float] = (0.95, 1.05),
+                 shift_max: int = 3,
+                 p: float = 0.5):
+        self.noise_std = noise_std
+        self.drift_scale = drift_scale
+        self.intensity_range = intensity_range
+        self.shift_max = shift_max
+        self.p = p  # probability of applying each augmentation
+
+    def __call__(self, spectrum: np.ndarray) -> np.ndarray:
+        """Apply random augmentations to a single spectrum.
+
+        Args:
+            spectrum: (L,) numpy array
+
+        Returns:
+            augmented: (L,) numpy array
+        """
+        L = len(spectrum)
+        aug = spectrum.copy()
+
+        # 1. Gaussian noise
+        if np.random.random() < self.p:
+            aug = aug + np.random.normal(0, self.noise_std, L).astype(np.float32)
+
+        # 2. Baseline drift (random low-frequency polynomial)
+        if np.random.random() < self.p:
+            x = np.linspace(-1, 1, L)
+            # Random 2nd-order polynomial drift
+            coeffs = np.random.normal(0, self.drift_scale, 3)
+            drift = coeffs[0] + coeffs[1] * x + coeffs[2] * x**2
+            aug = aug + drift.astype(np.float32)
+
+        # 3. Intensity scaling
+        if np.random.random() < self.p:
+            scale = np.random.uniform(*self.intensity_range)
+            aug = aug * scale
+
+        # 4. Wavelength shift (circular roll)
+        if np.random.random() < self.p and self.shift_max > 0:
+            shift = np.random.randint(-self.shift_max, self.shift_max + 1)
+            if shift != 0:
+                aug = np.roll(aug, shift)
+
+        return aug
+
+
 class QM9SDataset(Dataset):
     """QM9S dataset loading from preprocessed HDF5.
 
@@ -250,7 +309,8 @@ class QM9SDataset(Dataset):
     def __init__(self, h5_path: str, split: str = "train",
                  modalities: List[str] = None,
                  max_samples: int = None,
-                 seed: int = 42):
+                 seed: int = 42,
+                 augment: bool = None):
         """
         Args:
             h5_path: Path to qm9s_processed.h5
@@ -258,12 +318,15 @@ class QM9SDataset(Dataset):
             modalities: List of modalities (default: ["ir", "raman"])
             max_samples: Limit number of molecules (for debugging)
             seed: Random seed for train/val/test split
+            augment: Whether to apply augmentation (default: True for train)
         """
         import h5py
 
         self.h5_path = h5_path
         self.split = split
         self.modalities = modalities or ["ir", "raman"]
+        self.augment = augment if augment is not None else (split == "train")
+        self.augmentor = SpectralAugmentor() if self.augment else None
 
         # Read metadata and create split
         with h5py.File(h5_path, 'r') as f:
@@ -346,6 +409,10 @@ class QM9SDataset(Dataset):
                 modality = "ir"
             else:
                 spectrum = np.zeros(f['ir'].shape[1], dtype=np.float32)
+
+        # Apply augmentation for training data
+        if self.augmentor is not None:
+            spectrum = self.augmentor(spectrum)
 
         smiles = f['smiles'][real_idx]
         if isinstance(smiles, bytes):
