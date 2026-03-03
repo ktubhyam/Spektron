@@ -45,12 +45,16 @@ class DLinOSSBackbone(nn.Module):
                  d_state: int = 128, r_min: float = 0.9,
                  r_max: float = 1.0, theta_max: float = math.pi,
                  dropout: float = 0.05, layer_name: str = "Damped",
-                 bidirectional: bool = True):
+                 bidirectional: bool = True,
+                 ablation_no_damping: bool = False,
+                 ablation_shallow: bool = False):
         super().__init__()
         self.d_model = d_model
-        self.n_layers = n_layers
+        self.n_layers = n_layers if not ablation_shallow else 2
         self.d_state = d_state
         self.bidirectional = bidirectional
+        self.ablation_no_damping = ablation_no_damping
+        self.ablation_shallow = ablation_shallow
 
         # Forward layers
         self.layers = nn.ModuleList([

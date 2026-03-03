@@ -49,6 +49,8 @@ class DLinOSSConfig:
     theta_max: float = 3.14159     # Max oscillation angle (pi)
     dropout: float = 0.05          # Dropout rate
     layer_name: str = "Damped"     # "Damped", "IM", or "IMEX"
+    ablation_no_damping: bool = False  # A1: Disable damping (underdamped oscillators)
+    ablation_shallow: bool = False     # A6: Reduce to 2 layers (from 4)
 
 
 @dataclass
@@ -418,7 +420,7 @@ def get_benchmark_config(backbone: str = "dlinoss", seed: int = 42) -> SpektronC
         cfg.cnn1d.dropout = 0.1
     elif backbone == "s4d":
         cfg.s4d.d_model = 256
-        cfg.s4d.d_state = 256           # Higher state dim for more params
+        cfg.s4d.d_state = 64            # d_state=256 OOMs even with FFT fix
         cfg.s4d.n_layers = 8            # 8 layers → ~1.06M
         cfg.s4d.dropout = 0.1
     else:

@@ -41,13 +41,11 @@ class MultiHeadAttention(nn.Module):
         K = self.k_proj(k).view(B, -1, self.n_heads, self.d_k).transpose(1, 2)
         V = self.v_proj(v).view(B, -1, self.n_heads, self.d_k).transpose(1, 2)
 
-        # Scaled dot-product attention
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
-        if mask is not None:
-            scores = scores.masked_fill(mask == 0, -1e9)
-        attn = self.dropout(F.softmax(scores, dim=-1))
-
-        out = torch.matmul(attn, V)
+        # Flash Attention via SDPA — avoids materializing O(L²) attention matrix
+        attn_mask = (mask == 0) if mask is not None else None
+        dropout_p = self.dropout.p if self.training else 0.0
+        out = F.scaled_dot_product_attention(Q, K, V, attn_mask=attn_mask,
+                                             dropout_p=dropout_p)
         out = out.transpose(1, 2).contiguous().view(B, -1, self.d_model)
         return self.out_proj(out)
 

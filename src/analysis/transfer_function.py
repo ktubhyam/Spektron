@@ -197,6 +197,34 @@ def compute_scalar_frequency_response(
     return omega, H_scalar
 
 
+def compute_bc_weights(
+    layer_module: "torch.nn.Module",
+) -> np.ndarray:
+    """Compute per-oscillator effective coupling weights from B and C matrices.
+
+    The scalar H(z) formulation ignores B and C — it only captures pole
+    structure. This function computes w_p = ||B[p,:,:]||_F * ||C[:,p,:]||_F,
+    giving the true contribution weight of oscillator p to the output.
+    Oscillators with near-zero coupling are essentially inactive regardless
+    of their pole location.
+
+    Args:
+        layer_module: A DampedLayer instance.
+
+    Returns:
+        weights: (P,) non-negative coupling weights per oscillator.
+    """
+    import torch
+
+    with torch.no_grad():
+        B = layer_module.B.cpu().numpy()  # (P, H, 2)
+        C = layer_module.C.cpu().numpy()  # (H, P, 2)
+
+    B_norms = np.sqrt(np.sum(B ** 2, axis=(1, 2)))   # (P,)
+    C_norms = np.sqrt(np.sum(C ** 2, axis=(0, 2)))   # (P,)
+    return B_norms * C_norms
+
+
 def _extract_activated_params(
     layer_module: "torch.nn.Module",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

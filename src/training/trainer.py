@@ -49,7 +49,8 @@ class PretrainTrainer:
                  val_loader: Optional[DataLoader] = None,
                  use_wandb: bool = True,
                  run_name: Optional[str] = None,
-                 wandb_entity: Optional[str] = None):
+                 wandb_entity: Optional[str] = None,
+                 force_single_gpu: bool = False):
         self.model = model
         self.config = config
         self.train_loader = train_loader
@@ -112,9 +113,11 @@ class PretrainTrainer:
 
         # Multi-GPU via DataParallel
         self.n_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
-        if self.n_gpus > 1:
+        if self.n_gpus > 1 and not force_single_gpu:
             self.model = nn.DataParallel(self.model)
             print(f"Using DataParallel on {self.n_gpus} GPUs")
+        elif force_single_gpu and self.n_gpus > 1:
+            print(f"Single GPU forced (force_single_gpu=True), ignoring GPU 1")
 
         # Logging
         self.step = 0

@@ -105,6 +105,21 @@ class S4DBlock(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
+    def _compute_kernel(self, L: int, device: torch.device,
+                        dtype: torch.dtype) -> torch.Tensor:
+        """Compute causal convolution kernel K of shape (d_model, L).
+
+        S4D with input-independent A is equivalent to causal convolution.
+        K[d, t] = sum_n C[d,n] * dA[d,n]^t * B[d,n]
+        """
+        dt = torch.exp(self.log_dt)                               # (D,)
+        A = -torch.exp(self.A_log)                                # (N,)
+        dA = torch.exp(dt.unsqueeze(-1) * A.unsqueeze(0))         # (D, N)
+        t = torch.arange(L, device=device, dtype=dtype)           # (L,)
+        dA_powers = dA.unsqueeze(0) ** t.view(L, 1, 1)            # (L, D, N)
+        K = (self.C.unsqueeze(0) * dA_powers * self.B.unsqueeze(0)).sum(-1)  # (L, D)
+        return K.T.contiguous()                                    # (D, L)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Args: x (B, L, d_model). Returns: (B, L, d_model)."""
         residual = x
@@ -112,21 +127,16 @@ class S4DBlock(nn.Module):
 
         B_batch, L, D = x.shape
 
-        # Discretize
-        dt = torch.exp(self.log_dt)  # (d_model,)
-        A = -torch.exp(self.A_log)   # (d_state,) — always negative
-        dA = torch.exp(dt.unsqueeze(-1) * A.unsqueeze(0))  # (d_model, d_state)
+        # FFT causal convolution — O(L log L), no autograd graph explosion.
+        # Valid because A is input-independent: S4D = LTI system = convolution.
+        K = self._compute_kernel(L, x.device, x.dtype)            # (D, L)
+        fft_size = 2 * L
+        X_f = torch.fft.rfft(x.transpose(1, 2), n=fft_size)      # (B, D, fft_size//2+1)
+        K_f = torch.fft.rfft(K, n=fft_size)                       # (D, fft_size//2+1)
+        Y_f = X_f * K_f.unsqueeze(0)                              # (B, D, fft_size//2+1)
+        y = torch.fft.irfft(Y_f, n=fft_size)[..., :L]            # (B, D, L)
+        y = y.transpose(1, 2)                                      # (B, L, D)
 
-        # Sequential scan (simple; parallel scan for production)
-        h = torch.zeros(B_batch, D, self.d_state, device=x.device, dtype=x.dtype)
-        outputs = []
-        for t in range(L):
-            # x_t: (B, D) -> project to state: (B, D, N)
-            h = dA.unsqueeze(0) * h + self.B.unsqueeze(0) * x[:, t].unsqueeze(-1)
-            y_t = (self.C.unsqueeze(0) * h).sum(dim=-1)  # (B, D)
-            outputs.append(y_t)
-
-        y = torch.stack(outputs, dim=1)  # (B, L, D)
         y = y + x * self.D.unsqueeze(0).unsqueeze(0)
         y = self.dropout(y)
         return y + residual
