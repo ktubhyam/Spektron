@@ -2,11 +2,19 @@
 """
 E1 Ablations: D-LinOSS architecture ablation studies.
 
+ABLATION INTERACTION SEMANTICS (Orthogonal Testing):
+- A1 (no_damping=True, shallow=False): Tests damping hypothesis in isolation
+- A6 (no_damping=False, shallow=True): Tests depth hypothesis in isolation
+- NO COMBINATION TESTED (A1+A6 orthogonal but not jointly tested)
+
+Rationale: damping and depth are independent design choices. Testing them
+separately isolates their effects. If both improvements matter, results from
+A1 and A6 both show >5% gap vs baseline. Joint testing (A1+A6) is reserved
+for post-hoc analysis if needed.
+
 Implements:
 - A1: No damping (G=0, underdamped oscillators)
 - A6: Shallow (2 layers instead of 4)
-
-Compares against:
 - Baseline: Full D-LinOSS (4 layers, damped)
 
 Usage:

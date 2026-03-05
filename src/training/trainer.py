@@ -176,7 +176,7 @@ class PretrainTrainer:
             )
 
         # Update progressive schedules (mask ratio, VIB beta)
-        inner = self.model.module if self.n_gpus > 1 else self.model
+        inner = getattr(self.model, 'module', self.model)
         inner._current_step = self.step
         self.criterion.vib_loss.update_beta(self.step, self.config.pretrain.max_steps)
 

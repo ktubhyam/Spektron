@@ -1,49 +1,94 @@
-# Section 1: Introduction
+# 1. Introduction
 
-In 1966, Mark Kac posed a question that would reverberate across mathematics and physics for decades: "Can one hear the shape of a drum?" [1]. That is, given the complete set of eigenfrequencies produced by a vibrating membrane, can one uniquely reconstruct the geometry of that membrane? The answer, as Gordon, Webb, and Wolpert demonstrated in 1992, is no --- there exist pairs of non-isometric planar domains that produce identical spectra [2]. Kac's question has since inspired a family of inverse problems across the sciences, most recently in crystallography, where Wang and Torquato asked whether one can "hear the shape of a crystal" from its diffraction pattern [3]. Here we pose the molecular analog: given a vibrational spectrum, can one uniquely determine the molecular structure that produced it? This is the spectral inverse problem of analytical chemistry --- arguably the oldest unsolved identification problem in the field, and one that millions of practicing chemists confront, in one form or another, every working day.
+Vibrational spectroscopy — infrared absorption and Raman scattering — encodes the
+chemical identity of a molecule in a compact, physically interpretable form. Every
+peak corresponds to a normal mode of nuclear motion; the ensemble of peaks constitutes
+a molecular fingerprint that is sensitive to composition, conformation, and bonding
+environment. These properties have made IR and Raman spectroscopy indispensable tools
+across analytical chemistry, materials characterisation, pharmaceutical quality control,
+and structural biology. Yet the information content of a spectrum is rarely exhausted
+by the handful of peaks that a human analyst annotates. Buried in the continuum of
+overlapping bands, cross-peak correlations, and baseline curvature lies structure that
+resists manual extraction but may be accessible to learned representations.
 
-The stakes are considerable. Infrared (IR) and Raman spectroscopy are among the most widely deployed analytical techniques in chemistry, serving as frontline tools for molecular identification in pharmaceutical quality control, environmental monitoring, forensic analysis, and materials characterization. Together they probe the vibrational degrees of freedom of a molecule: IR spectroscopy measures the absorption of light by modes that modulate the molecular dipole moment, while Raman spectroscopy measures inelastic scattering by modes that modulate the polarizability tensor. The two techniques are complementary by design --- a fact codified by the mutual exclusion rule for centrosymmetric molecules --- and their combined use is standard practice in structure elucidation. Yet despite over sixty years of routine application, we lack a formal theory of when spectroscopic structure determination is possible and when it is not. Chemists develop expert intuition for interpreting spectra, and modern spectral databases enable matching against known compounds, but neither approach answers the fundamental question: what are the theoretical limits of molecular identification from vibrational data?
+The recent proliferation of large, high-quality computed spectral datasets creates a
+new opportunity. The QM9S dataset, for example, provides DFT-level IR and Raman
+spectra for 129,817 small organic molecules at the B3LYP/def2-TZVP level of theory,
+each resolved to 2048 points across 500–4000 cm⁻¹. At this scale, data-driven models
+can in principle learn the statistical regularities that connect molecular structure
+to spectral shape. Deep learning has already demonstrated this principle in related
+domains: convolutional architectures for peak identification, graph neural networks for
+property prediction from structure, and transformer-based models for molecular
+generation. The application of these ideas directly to raw spectral sequences, however,
+remains comparatively underdeveloped. In particular, the question of whether the
+inductive biases built into a given architecture are *well-matched* to the physics of
+vibrational spectra has not been rigorously studied.
 
-Recent advances in machine learning have brought new empirical urgency to this question. A series of increasingly powerful models have attacked the spectrum-to-structure problem directly. DiffSpectra [4] demonstrated that a diffusion-based generative model can reconstruct molecular graphs from simulated IR and Raman spectra, achieving 40.76% top-1 accuracy on a benchmark of over 100,000 molecules --- a striking result, but one that also means the correct structure is missed nearly 60% of the time. Vib2Mol [5] introduced a multi-task framework combining retrieval with molecular property prediction, reaching approximately 87% top-10 accuracy. Most recently, VibraCLIP [6] applied contrastive learning between spectra and molecular representations, achieving 81.7% top-1 accuracy when molecular mass is provided as an auxiliary hint. These results are impressive and represent genuine progress, but they are purely empirical. They cannot explain why accuracy plateaus well below 100%, which molecules are fundamentally hard to distinguish, or whether perfect identification is even theoretically achievable. Without a theoretical framework, we cannot distinguish between limitations that are algorithmic (and thus improvable with better models) and limitations that are physical (and thus fundamental).
+This question motivates the present work. A vibrational spectrum is, at its mechanistic
+origin, a superposition of damped harmonic responses. Each normal mode contributes a
+Lorentzian band centred at the mode frequency, with a width determined by the relaxation
+time of that mode. The time-domain picture is equally clear: the free induction decay
+following an impulsive excitation is a sum of exponentially decaying sinusoids. This
+structure suggests a natural prior for any model that operates on spectra: the
+signal-processing primitives most aligned with the data-generating process are damped
+oscillators, not convolutions with fixed kernels, not scaled dot-product attention, and
+not basis expansions that treat the spectrum as an arbitrary real-valued vector. Diagonal
+Linear Oscillatory State Space Models (D-LinOSS) [CITE] implement exactly this prior:
+each layer propagates a bank of second-order oscillatory modes with learnable frequency,
+damping, and mixing coefficients. The function-space hypothesis of this paper is that
+D-LinOSS is a more natural basis for representing vibrational spectral features than
+architectures whose inductive biases carry no such physical alignment. We emphasise
+that this is a *model-class argument*: the oscillator frequencies in the state-space
+representation are signal-processing parameters, not wavenumbers, and we make no
+claim of a one-to-one correspondence between learned modes and physical vibrations.
 
-This gap is not for lack of classical work on the inverse vibrational problem. Mills [7] established in 1966 that vibrational frequencies alone are generally insufficient to uniquely determine molecular force constants --- the system is underdetermined when only eigenvalues are available. Kuramshina and colleagues [8] developed regularization methods for the ill-posed classical inverse problem of recovering force fields from spectroscopic data. More recently, the group-theoretic structure governing identifiability in inverse problems has been formalized [9], and the role of symmetry breaking in learning-based inversion has been studied [10]. Yet despite this body of work, three specific questions have never been addressed. First, no one has quantified the information loss that molecular point-group symmetry imposes on spectroscopic observables --- that is, what fraction of vibrational information is actually accessible via IR and Raman measurements for a molecule of given symmetry? Second, no one has proved, in information-theoretic or representation-theoretic terms, the precise sense in which IR and Raman provide complementary structural information. Third, no one has investigated whether the combined IR+Raman spectrum generically determines molecular structure, or whether isospectral molecular pairs --- the chemical analogs of Gordon, Webb, and Wolpert's isospectral drums --- exist for combined vibrational data.
+Despite the growing literature on deep learning for spectroscopy, no prior work has
+evaluated state space models on vibrational spectral data. The SSM family — including
+S4 [CITE], S4D [CITE], Mamba [CITE], and their variants — has achieved strong
+performance on long-range sequence tasks across multiple domains, but its application
+to spectroscopy has not been reported. This gap is notable given the physics alignment
+argument above, and closing it requires a controlled empirical study with matched
+parameter budgets across architectures.
 
-In this work, we develop the first formal identifiability theory for vibrational spectroscopy and connect it to the design and evaluation of machine learning models for molecular identification. Our contributions are as follows:
+A second gap concerns the relationship between IR and Raman spectra of the same
+molecule. Both probe nuclear motion, but through complementary selection rules: IR
+intensity reflects the change in dipole moment during a vibration, while Raman
+intensity reflects the change in polarisability. For a given molecule, the two spectra
+are not independent — they share the same underlying normal mode structure — yet they
+are not simply related by a pointwise transformation. The problem of *cross-spectral
+prediction*: predicting one spectral modality from the other, has not been studied as
+a machine learning task. It is a natural testbed for learned inter-modal representations
+and has practical relevance: Raman instrumentation is more costly and less ubiquitous
+than FTIR, so a model that reliably predicts Raman spectra from IR measurements would
+have direct analytical utility.
 
-1. **Theorem 1 (Information Completeness Ratio).** We define and compute the quantity $R(G, N) = (N_{\text{IR}} + N_{\text{Raman}}) / (3N - 6)$, which measures the fraction of vibrational degrees of freedom observable via IR and Raman spectroscopy for a molecule with $N$ atoms and point group $G$. This ratio ranges from 1.0 for low-symmetry molecules (where all modes are spectroscopically active) to as low as 0.67 for highly symmetric species like benzene ($D_{6h}$), where silent modes render a substantial fraction of vibrational information permanently inaccessible. To our knowledge, this is the first explicit quantification of symmetry-induced information loss in spectroscopy, and we show that it predicts the accuracy ceiling of state-of-the-art ML models.
+We present a four-experiment empirical study addressing both gaps. The specific
+contributions are:
 
-2. **Theorem 2 (Modal Complementarity).** We prove that for any centrosymmetric molecule --- one whose point group contains the inversion operation --- the sets of IR-active and Raman-active vibrational modes are strictly disjoint (the mutual exclusion rule), and consequently, combining IR and Raman spectroscopy strictly increases the number of observed vibrational degrees of freedom beyond either modality alone. The complementarity gain equals $\min(N_{\text{IR}}, N_{\text{Raman}})$ additional observable modes. This result, while grounded in classical group theory, has never been connected to machine learning model design: it provides the first theoretical justification for why multi-modal spectral models should exhibit a large performance gain on centrosymmetric molecules and a smaller gain on non-centrosymmetric ones.
+1. **Architecture benchmark (E1).** We provide the first systematic comparison of
+   D-LinOSS against Transformers, 1D CNNs, S4D, and PLS on masked spectral
+   reconstruction, finding that D-LinOSS achieves val loss 0.076 ± 0.001 — a 22.6×
+   improvement over the mean-spectrum baseline, compared to 1.3× for CNN and 0.8×
+   (below baseline) for Transformer — at matched ~2M backbone parameters.
 
-3. **Conjecture 3 (Generic Identifiability).** We present computational evidence that for generic molecules --- those outside a set of measure zero in configuration space --- the combined IR+Raman spectrum (frequencies and intensities) determines the molecular force constants uniquely up to symmetry equivalence. This conjecture is supported by parameter counting arguments showing that the observable space is typically 1.2--2.0 times overdetermined relative to the force constant space, by numerical Jacobian rank analysis confirming full rank for all tested non-degenerate configurations, and by the absence of counterexamples in systematic searches over 10,000 random molecular geometries. We state this result as a conjecture rather than a theorem because a rigorous proof would require resolving technical issues at eigenvalue degeneracies, where the forward map loses smoothness --- a challenge closely related to open problems in semi-algebraic geometry.
+2. **Cross-spectral prediction (E2).** We introduce IR↔Raman cross-spectral
+   prediction as a novel ML task and evaluate all architectures against a PLS2
+   classical baseline, providing the first quantitative characterisation of how well
+   neural spectral representations support cross-modal transfer.
 
-4. **Symmetry-aware machine learning model.** Guided by these theoretical results, we develop a spectral foundation model that incorporates symmetry-informed design choices: a multi-modal encoder for joint IR+Raman processing, a variational information bottleneck that disentangles chemical information from instrumental artifacts, and a retrieval-based decoder with conformal prediction guarantees. We validate the model on the QM9S dataset (over 130,000 molecules with computed IR and Raman spectra), demonstrating that (i) model accuracy correlates with the information completeness ratio $R(G, N)$ as predicted by Theorem 1, (ii) the complementarity gain is significantly larger for centrosymmetric molecules as predicted by Theorem 2, and (iii) the model's failure cases concentrate on theoretically predicted confusable molecular pairs.
+3. **Transfer function interpretability (E3).** We develop an H(z) analysis framework
+   for trained D-LinOSS models, demonstrating massive BC coupling concentration
+   (Cohen's d = 6.8–8.5 vs. random weights) and strong inter-layer specialisation
+   (5.2× higher diversity in forward layers vs. random). This provides mechanistic
+   insight unavailable for Transformers or CNNs.
 
-The connection between our work and Kac's original question deserves a brief remark. Kac's problem concerns the Laplacian eigenvalue spectrum of a bounded domain; our problem concerns the Hessian eigenvalue spectrum (frequencies) together with eigenvector projections (intensities) of a molecular potential energy surface. The inclusion of intensity information --- unavailable in the drum problem --- fundamentally changes the character of the inverse problem, and is one reason we conjecture that generic identifiability holds for molecules even though it fails for drums. A suggestive analogy comes from the classical theory of Sturm-Liouville operators: Borg's theorem [11] states that a one-dimensional potential is uniquely determined by two spectra (corresponding to different boundary conditions). In our setting, IR and Raman can be loosely thought of as providing two complementary "spectral views" of the same underlying force field. We emphasize, however, that this analogy is motivational rather than formal --- the mathematical structures are quite different, and our evidence for generic identifiability rests on the computational analysis presented in this paper, not on any extension of Borg's theorem.
+4. **Calibration transfer (E4, honest negative).** We evaluate whether features
+   pretrained on DFT mid-IR spectra transfer to experimental NIR calibration (corn
+   dataset), finding catastrophic negative transfer (R² ≈ −1.3 at N = 50 samples)
+   attributable to the fundamental physics gap between overtone NIR bands and
+   DFT-computed fundamentals.
 
-The remainder of this paper is organized as follows. Section 2 provides the necessary background on the forward vibrational map (the Wilson GF method), selection rules from representation theory, and related work in both classical spectroscopy and machine learning. Section 3 develops our theoretical framework: the information completeness ratio (Theorem 1), the modal complementarity theorem (Theorem 2), and the generic identifiability conjecture (Conjecture 3), together with a Fano-inequality-based lower bound on identification error for confusable molecular sets. Section 4 describes our model architecture and training methodology. Section 5 presents experimental results on symmetry-stratified identification, modal complementarity validation, confusable set analysis, and Jacobian rank computation. Section 6 discusses implications for ML model design, connections to broader inverse problems, and limitations of the present work. Section 7 concludes.
-
----
-
-## References
-
-[1] M. Kac, "Can one hear the shape of a drum?", *American Mathematical Monthly* **73**(4), 1--23 (1966).
-
-[2] C. Gordon, D. L. Webb, S. Wolpert, "One cannot hear the shape of a drum", *Bulletin of the American Mathematical Society* **27**(1), 134--138 (1992).
-
-[3] J. Wang, S. Torquato, "Can one hear the shape of a crystal?", preprint (2025).
-
-[4] DiffSpectra: Diffusion-based molecular generation from IR and Raman spectra, arXiv:2507.06853 (2025).
-
-[5] Vib2Mol: A multi-task framework for vibrational spectrum-to-molecule translation, arXiv:2503.07014 (2025).
-
-[6] VibraCLIP: Contrastive learning for vibrational spectroscopy and molecular structure, *RSC Digital Discovery* (2025).
-
-[7] I. M. Mills, "The calculation of accurate normal coordinates and force constants from observed frequencies", *Spectrochimica Acta* **22**, 561--570 (1966).
-
-[8] G. M. Kuramshina, F. A. Weinhold, I. V. Kochikov, A. G. Yagola, Yu. A. Pentin, "Joint treatment of ab initio and experimental data in molecular force field calculations with Tikhonov regularization", *Journal of Chemical Physics* **100**, 2516--2524 (1994). See also: G. M. Kuramshina, "Inverse problems of vibrational spectroscopy", in *Vibrational Spectroscopy* (1999).
-
-[9] "Group-theoretic structure governing identifiability in inverse problems", arXiv:2511.08995 (2025).
-
-[10] Y. Chen, M. E. Davies, "Inverse problems, deep learning, and symmetry breaking", arXiv:2003.09077 (2020).
-
-[11] G. Borg, "Eine Umkehrung der Sturm-Liouvilleschen Eigenwertaufgabe. Bestimmung der Differentialgleichung durch die Eigenwerte", *Acta Mathematica* **78**, 1--96 (1946).
+The remainder of the paper is organised as follows. Section 2 provides background on
+D-LinOSS and competing architectures. Section 3 describes datasets and evaluation
+metrics. Sections 4–7 present experiments E1–E4 in sequence. Section 8 discusses the
+physics alignment hypothesis in light of the results, limitations, and future directions.

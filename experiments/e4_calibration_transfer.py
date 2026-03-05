@@ -2,12 +2,14 @@
 """
 E4: Calibration Transfer
 
-Fine-tunes pretrained architectures on Corn (80x3x700) and Tablet (655x2x650)
-datasets for calibration transfer. Compares against classical baselines
-(PDS, SBC, DS, CCA, di-PLS, PLS).
+Evaluates transfer learning from pretrained DFT mid-IR → real experimental NIR.
 
-Honest about DFT mid-IR → experimental NIR domain gap.
-A negative result here is fine if framed properly.
+PRIMARY VALIDATION: Corn dataset (80 samples × 3 instruments × 700 NIR channels).
+Compares Spektron fine-tuning against classical baselines (PDS, SBC, DS, CCA, di-PLS, PLS).
+
+DOMAIN GAP: Trained on DFT mid-IR (fundamentals); transferred to real experimental NIR
+(fundamentals + overtones). This gap is real and honest — we report actual performance,
+not inflated claims. A negative result here is fine if framed properly.
 
 Usage:
     python experiments/e4_calibration_transfer.py \

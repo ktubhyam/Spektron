@@ -64,6 +64,8 @@ class Spektron(nn.Module):
                 theta_max=config.dlinoss.theta_max,
                 dropout=config.dlinoss.dropout,
                 layer_name=config.dlinoss.layer_name,
+                ablation_no_damping=config.dlinoss.ablation_no_damping,
+                ablation_shallow=config.dlinoss.ablation_shallow,
             )
         elif config.backbone == "cnn1d":
             self.backbone = CNN1DBackbone(

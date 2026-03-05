@@ -543,7 +543,9 @@ class QM9SPairedDataset(Dataset):
 def build_qm9s_loaders(h5_path: str, batch_size: int = 64,
                         num_workers: int = 2,
                         modalities: List[str] = None,
-                        max_samples: int = None) -> Tuple[DataLoader, DataLoader, DataLoader]:
+                        max_samples: int = None,
+                        seed: int = 42,
+                        fold_id: int = 0) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Build train/val/test dataloaders for QM9S.
 
     Args:
@@ -552,10 +554,15 @@ def build_qm9s_loaders(h5_path: str, batch_size: int = 64,
         num_workers: Data loading workers
         modalities: Which modalities to include
         max_samples: Limit samples per split (for debugging)
+        seed: Base random seed for train/val/test split
+        fold_id: Fold ID for cross-validation (0, 1, or 2). Combined with seed to ensure
+                 deterministic but different splits per fold.
 
     Returns:
         (train_loader, val_loader, test_loader)
     """
+    # Combine seed and fold_id to ensure different splits per fold
+    effective_seed = seed + fold_id * 1000
     def _collate(batch):
         """Custom collate that handles string fields."""
         result = {}
@@ -572,6 +579,7 @@ def build_qm9s_loaders(h5_path: str, batch_size: int = 64,
         dataset = QM9SDataset(
             h5_path, split=split, modalities=modalities,
             max_samples=max_samples,
+            seed=effective_seed,
         )
         loader = DataLoader(
             dataset,

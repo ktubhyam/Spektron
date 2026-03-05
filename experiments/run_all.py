@@ -3,16 +3,25 @@
 Master Experiment Runner
 
 Runs all 4 experiments sequentially:
-  E1: Architecture Benchmark
-  E2: Cross-Spectral Prediction
-  E3: Transfer Function Analysis
-  E4: Calibration Transfer
+  E1: Architecture Benchmark (5 architectures × 3 datasets × 5 seeds)
+  E2: Cross-Spectral Prediction (5 backbones × 2 directions × 3 seeds)
+  E3: Transfer Function Analysis (H(z) on trained models)
+  E4: Calibration Transfer (Corn dataset fine-tuning)
+
+STORAGE STRATEGY:
+- Checkpoint directory: checkpoints/{experiment}_{seed}_f{fold}/
+- Keep policy: Only final checkpoint per run (delete intermediate saves)
+- Pruning: Run `scripts/prune_checkpoints.py` after all experiments complete
+  - Keeps only E1/E3 best models for interpretability analysis
+  - Compresses remaining checkpoints to 16-bit (FP16) for archival
+  - Target: 1.7TB → ~180GB after pruning
+- Backup: Upload final models to cloud storage (S3/GCS) before cleanup
 
 Usage:
-    # Full run (GPU required)
+    # Full run (GPU required, ~10-12 days on 2× RTX 5060 Ti)
     python experiments/run_all.py --h5-path data/raw/qm9s/qm9s_processed.h5
 
-    # Quick smoke test (CPU ok)
+    # Quick smoke test (CPU ok, ~30 min)
     python experiments/run_all.py --h5-path ... --quick
 
     # Run specific experiments
